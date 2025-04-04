@@ -1,36 +1,73 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
-import supabase from "./supabase_client";
+import { useState, useEffect } from 'react'
+import Header from './components/Header'
+import LoginSidebar from './components/LoginSidebar'
+import Dropdown from './components/Dropdown'
 
-function App() {
-  const [count, setCount] = useState(0);
+export default function App() {
+  const [activeDropdown, setActiveDropdown] = useState(null)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isMobile, setIsMobile] = useState(true)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsMobile(true)
+        setIsSidebarCollapsed(true)
+      } else {
+        setIsMobile(false)
+        setIsSidebarCollapsed(false)
+      }
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  
+  const sidebarWidth = isMobile ? (isSidebarCollapsed ? '3rem' : '280px') : '280px'
+  const dropdownFlexDirection = isMobile ? 'flex-col' : 'flex-row'
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="relative min-h-screen">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img
+          src="/eblbg.png"
+          alt="Background"
+          className="absolute top-[80px] left-0 object-cover object-left-bottom md:w-[calc(100vw-280px)] w-[calc(100vw-3rem)] h-[calc(100vh-80px)]"
+        />
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  );
-}
 
-export default App;
+      <div className="relative z-10">
+        <Header />
+
+        {/* Dropdown Group position */}
+        <div
+          className={`fixed top-[104px] flex ${dropdownFlexDirection} gap-4 z-20`}
+          style={{ right: `calc(${sidebarWidth} + 1rem)` }}
+        >
+          <Dropdown
+            title="Services"
+            options={["Service 1", "Service 2", "Service 3"]}
+            isActive={activeDropdown === 'services'}
+            onToggle={() =>
+              setActiveDropdown((prev) => (prev === 'services' ? null : 'services'))
+            }
+          />
+          <Dropdown
+            title="Contacts"
+            options={["Contact 1", "Contact 2", "Contact 3"]}
+            isActive={activeDropdown === 'contacts'}
+            onToggle={() =>
+              setActiveDropdown((prev) => (prev === 'contacts' ? null : 'contacts'))
+            }
+          />
+        </div>
+
+        <main className="pt-[184px] md:mr-[280px] mr-12 p-6">
+        </main>
+
+        <LoginSidebar isMobile={isMobile} isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+      </div>
+    </div>
+  )
+}
