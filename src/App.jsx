@@ -5,7 +5,7 @@ import viteLogo from "/vite.svg";
 import "./App.css";
 import supabase from "./supabase_client";
 import LandingPage from "./pages/LandingPage";
-import StudentPage from "./pages/StudentPage";
+import StudentPage from "./pages/Student/StudentPage";
 import AdminPage from "./pages/AdminPage";
 
 function App() {
