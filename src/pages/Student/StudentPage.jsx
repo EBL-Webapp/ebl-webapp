@@ -1,7 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
-import Offenses from './components/Offenses';
-import StudentData from './components/StudentData';
-import HouseCouncilLink from './components/HouseCouncilLink';
+import { Routes, Route } from "react-router-dom";
+import Offenses from "./components/Offenses";
+import StudentData from "./components/StudentData";
+import HouseCouncilLink from "./components/HouseCouncilLink";
 
 const StudentPage = () => {
   return (
