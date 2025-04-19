@@ -5,6 +5,7 @@ import viteLogo from "/vite.svg";
 import "./App.css";
 import supabase from "./supabase_client";
 import LandingPage from "./pages/LandingPage";
+import Login from "./pages/Login";
 import StudentPage from "./pages/Student/StudentPage";
 
 // The following imports are about the admin and their subpages
@@ -22,6 +23,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/student/*" element={<StudentPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/overstayPermits" element={<AdminPage_overstayPermits/>} />
