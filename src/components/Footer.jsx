@@ -2,51 +2,63 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#5a0000] text-white pt-6 pb-3 px-4 relative min-h-[280px] md:min-h-[300px] lg:min-h-[320px]">
-      {/* ===== OBLATION STATUE IMAGE ===== */}
-      <div className="absolute bottom-0 left-0 flex items-end">
-        <img 
-          src="/oble.png" 
-          alt="UP Oblation" 
-          className="h-auto w-auto object-contain max-w-[150px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[280px]" 
-          style={{ maxHeight: '320px' }}
-        />
-      </div>
-
+    <footer className="bg-[#5a0000] text-white pt-6 pb-3 px-4 relative">
       <div className="container mx-auto">
-        {/* ===== MAIN CONTENT GRID ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 ml-0 sm:ml-32 md:ml-48 lg:ml-72">
+        {/* Main grid layout - single column on mobile, two columns on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
           
-          {/* ===== LEFT COLUMN: UNIVERSITY INFO ===== */}
-          <div className="flex flex-col justify-center items-center md:items-start h-full mt-4 md:mt-0">
-            <div className="text-center md:text-left w-full">
-              {/* Desktop University Name */}
-              <h2 className="hidden md:block text-4xl font-bold mb-4 leading-tight mx-auto md:mx-0" style={{ maxWidth: '300px' }}>
-                UNIVERSITY OF THE PHILIPPINES MINDANAO
-              </h2>
-              
-              {/* Mobile University Name - 4 Lines */}
-              <div className="md:hidden text-3xl font-bold mb-4 leading-tight mx-auto text-center flex flex-col">
+          {/*Oblation statue */}
+          <div className="absolute bottom-0 left-0 hidden md:flex items-end pointer-events-none">
+            <img 
+              src="/oble.png" 
+              alt="UP Oblation" 
+              className="h-auto w-auto object-contain md:max-w-[180px] lg:max-w-[220px]" 
+              style={{ maxHeight: '280px' }}
+            />
+          </div>
+          
+          {/* Mobile header with Oblation and university name */}
+          <div className="sm:hidden flex items-end mb-4">
+            <div className="flex-shrink-0">
+              <img 
+                src="/oble.png" 
+                alt="UP Oblation" 
+                className="h-auto w-auto object-contain max-w-[100px]" 
+                style={{ maxHeight: '150px' }}
+              />
+            </div>
+            <div className="ml-4 flex-grow">
+              <div className="text-xl font-bold leading-tight">
                 <span className="block">UNIVERSITY</span>
                 <span className="block">OF THE</span>
                 <span className="block">PHILIPPINES</span>
                 <span className="block">MINDANAO</span>
               </div>
+            </div>
+          </div>
+          
+          {/* Left column - University info */}
+          <div className="flex flex-col justify-center items-center md:items-start h-full md:pl-40 lg:pl-48">
+            <div className="text-center md:text-left w-full">
+              {/* Desktop university name */}
+              <h2 className="hidden md:block text-3xl lg:text-4xl font-bold mb-4 leading-tight mx-auto md:mx-0" style={{ maxWidth: '300px' }}>
+                UNIVERSITY OF THE PHILIPPINES MINDANAO
+              </h2>
               
-              {/* Address and Copyright */}
-              <div className="space-y-1">
+              {/* Address and copyright */}
+              <div className="space-y-1 sm:mt-4 md:mt-0">
                 <p className="text-xs sm:text-sm">Mintal, Tugbok District, Davao City, Philippines</p>
                 <p className="text-xs">© {new Date().getFullYear()} EBL Dorm | All Rights Reserved.</p>
               </div>
             </div>
           </div>
           
-          {/* ===== RIGHT COLUMN: CONTACT AND LINKS ===== */}
+          {/* Right column - Contacts and links */}
           <div className="mt-6 md:mt-0">
-            {/* Contact Information Section */}
-            <div className="mb-3">
-              <h3 className="text-base font-semibold mb-1 border-b border-gray-700 pb-1">CONTACTS</h3>
-              <ul className="space-y-0.5 text-xs">
+            {/* Contact information */}
+            <div className="mb-4">
+              <h3 className="text-base font-semibold mb-2 border-b border-gray-700 pb-1">CONTACTS</h3>
+              <ul className="space-y-1 text-xs sm:text-sm">
                 <li>Landline: (082) 293 0016</li>
                 <li>Mobile: 0917 708 3627</li>
                 <li>Email: ebl.dorm@up.edu.ph</li>
@@ -54,12 +66,12 @@ const Footer = () => {
               </ul>
             </div>
             
-            {/* Links Section - Two Columns on Larger Screens */}
+            {/* Links section - single column on mobile, two columns on tablet+ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
-              {/* Quick Links Column */}
-              <div className="mb-3 sm:mb-0">
-                <h3 className="text-base font-semibold mb-1 border-b border-gray-700 pb-1">QUICK LINKS</h3>
-                <ul className="space-y-0.5 text-xs">
+              {/* Quick links */}
+              <div className="mb-4 sm:mb-0">
+                <h3 className="text-base font-semibold mb-2 border-b border-gray-700 pb-1">QUICK LINKS</h3>
+                <ul className="space-y-1 text-xs sm:text-sm">
                   <li><a href="#" className="hover:underline">Home</a></li>
                   <li><a href="#" className="hover:underline">Services</a></li>
                   <li><a href="#" className="hover:underline">Policies & Guidelines</a></li>
@@ -68,10 +80,10 @@ const Footer = () => {
                 </ul>
               </div>
               
-              {/* Legal Policies Column */}
+              {/* Legal policies */}
               <div>
-                <h3 className="text-base font-semibold mb-1 border-b border-gray-700 pb-1">LEGAL POLICIES</h3>
-                <ul className="space-y-0.5 text-xs">
+                <h3 className="text-base font-semibold mb-2 border-b border-gray-700 pb-1">LEGAL POLICIES</h3>
+                <ul className="space-y-1 text-xs sm:text-sm">
                   <li><a href="#" className="hover:underline">Privacy Policy</a></li>
                   <li><a href="#" className="hover:underline">Terms & Conditions</a></li>
                   <li><a href="#" className="hover:underline">Refund & Cancellation Policy</a></li>
