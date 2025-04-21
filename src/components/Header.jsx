@@ -1,281 +1,201 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronDown, LogOut, Menu } from "lucide-react";
+import upLogo from "@/assets/up-mindanao-logo.png";
 
-const Header = ({ onLoginClick }) => {
-  const [servicesOpen, setServicesOpen] = useState(false);
-  const [contactsOpen, setContactsOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const menuButtonRef = useRef(null);
-  const mobileMenuRef = useRef(null);
+export default function Header({ 
+  variant = "landing", 
+  isLoggedIn = false, 
+  userName = "", 
+  userId = "", 
+  onLogout = () => {} 
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const toggleMenu = () => setShowMenu(!showMenu);
 
-  useEffect(() => {
-    let scrollTimer;
-    
-    const handleScroll = () => {
-      if (!isScrolling) {
-        setIsScrolling(true);
-      }
-      
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        if (window.scrollY > 10) {
-          setServicesOpen(false);
-          setContactsOpen(false);
-        }
-        setIsScrolling(false);
-      }, 150);
-    };
-    
-    window.addEventListener("scroll", handleScroll);
-    
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(scrollTimer);
-    };
-  }, [isScrolling]);
+  const isStudent = variant === "student";
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuButtonRef.current && menuButtonRef.current.contains(event.target)) {
-        return;
-      }
-      if (mobileMenuRef.current && mobileMenuRef.current.contains(event.target)) {
-        return;
-      }
-      setServicesOpen(false);
-      setContactsOpen(false);
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
+  const [showServices, setShowServices] = useState(false);
+  const [showContacts, setShowContacts] = useState(false);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const toggleServices = (e) => {
-    e.stopPropagation();
-    setServicesOpen(!servicesOpen);
-    setContactsOpen(false);
-  };
-
-  const toggleContacts = (e) => {
-    e.stopPropagation();
-    setContactsOpen(!contactsOpen);
-    setServicesOpen(false);
-  };
-
-  const toggleMobileMenu = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  const closeDropdowns = () => {
-    setServicesOpen(false);
-    setContactsOpen(false);
-  };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#5a0000] text-white shadow-md">
-      {/* Main Header Container */}
-      <div className="flex items-center justify-between px-4 py-3">
-        {/* ===== LOGO AND TITLE SECTION ===== */}
-        <div className="flex items-center">
-          {/* Logo Icon */}
-          <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
-            <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full bg-white opacity-90">
-              <img
-                src="/upmin_logo.jpg"
-                alt="UP Mindanao Logo"
-                className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
-              />
+    <header className="bg-[#4E0303] shadow-md sticky top-0 z-50 text-black text-sm font-light">
+      <div className="max-w-screen-xl mx-auto px-4 py-2 flex justify-between items-center">
+        {/* Logo / Title */}
+        <Link to="/" className="flex items-center space-x-2">
+          <img src={upLogo} alt="Logo" className="h-12 w-12 sm:h-20 sm:w-20" />
+          <p className="text-white text-xs sm:text-base">UP Mindanao EBL Dorm</p>
+        </Link>
+
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex space-x-2 items-center text-sm font-light text-white">
+          {isStudent && (
+            <Link
+              to="/student"
+              className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
+            >
+              Home
+            </Link>
+          )}
+
+          <div className="relative">
+            <button 
+              onClick={() => {
+                setShowServices(prev => !prev);
+                setShowContacts(false); // optional: closes Services if it's open
+              }} 
+              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
+            >
+              Services <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showServices ? 'rotate-180' : ''}`} />
+            </button>
+
+            <div
+              className={`absolute right-0 bg-white text-black rounded-md shadow-lg mt-2 z-10 overflow-hidden transition-all duration-300 ease-in-out 
+              ${showServices ? 'opacity-100 max-h-60 py-2' : 'opacity-0 max-h-0 py-0'}`}
+              style={{ transitionProperty: 'opacity, max-height, padding' }}
+            >
+              <ul>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 1</li>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 2</li>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 3</li>
+              </ul>
             </div>
           </div>
 
-          {/* Title Text - Different versions for mobile and desktop */}
-          <div className="ml-3 sm:ml-5 flex flex-col leading-tight">
-            {/* Mobile Title (Two Lines) */}
-            <span className="text-base sm:hidden font-nunito font-bold">UP MINDANAO</span>
-            <span className="text-base sm:hidden font-nunito">EBL DORM</span>
-            
-            {/* Desktop Title (Single Line) */}
-            <span className="hidden sm:inline-block text-xl font-nunito font-semibold">
-              UP MINDANAO EBL DORM
-            </span>
-          </div>
-        </div>
 
-        {/* ===== MOBILE MENU BUTTON ===== */}
-        <button 
-          ref={menuButtonRef}
-          className="sm:hidden text-white focus:outline-none p-2"
-          onClick={toggleMobileMenu}
-          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-        >
-          <svg 
-            className="h-6 w-6" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            {mobileMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
-
-        {/* ===== DESKTOP NAVIGATION ===== */}
-        <nav className="hidden sm:flex items-center gap-x-8 text-lg font-medium">
-          {/* Home Link */}
-          <a href="#" className="hover:underline">
-            HOME
-          </a>
-
-          {/* Services Dropdown */}
           <div className="relative">
             <button 
-              onClick={toggleServices}
-              className="flex items-center"
+              onClick={() => {
+                setShowContacts(prev => !prev);
+                setShowServices(false); // optional: closes Services if it's open
+              }} 
+              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
             >
-              <span>SERVICES</span>
-              <svg className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              Contacts <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showContacts ? 'rotate-180' : ''}`} />
             </button>
-            
-            {/* Services Dropdown Menu */}
-            {servicesOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-md bg-[#5a0000] shadow-lg z-50">
-                <a href="#" className="block px-5 py-3 text-white hover:bg-[#700000] text-base">
-                  Service 1
-                </a>
-                <a href="#" className="block px-5 py-3 text-white hover:bg-[#700000] text-base">
-                  Service 2
-                </a>
-              </div>
-            )}
-          </div>
 
-          {/* Contacts Dropdown */}
-          <div className="relative">
-            <button 
-              onClick={toggleContacts}
-              className="flex items-center"
+            <div
+              className={`absolute right-0 bg-white text-black rounded-md shadow-lg mt-2 z-10 overflow-hidden transition-all duration-300 ease-in-out 
+              ${showContacts ? 'opacity-100 max-h-60 py-2' : 'opacity-0 max-h-0 py-0'}`}
+              style={{ transitionProperty: 'opacity, max-height, padding' }}
             >
-              <span>CONTACTS</span>
-              <svg className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {/* Contacts Dropdown Menu */}
-            {contactsOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-md bg-[#5a0000] shadow-lg z-50">
-                <a href="#" className="block px-5 py-3 text-white hover:bg-[#700000] text-base">
-                  Email
-                </a>
-                <a href="#" className="block px-5 py-3 text-white hover:bg-[#700000] text-base">
-                  Address
-                </a>
-              </div>
-            )}
+              <ul>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 1</li>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 2</li>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 3</li>
+              </ul>
+            </div>
           </div>
-
-          {/* Login Button */}
-          <button
-            onClick={onLoginClick}
-            className="bg-green-900 hover:bg-green-800 text-white rounded-md px-5 py-2 text-base"
-            style={{ backgroundColor: '#15803d' }}
-          >
-            Log In
-          </button>
+          
+          {isStudent && isLoggedIn ? (
+            <div className="flex items-center space-x-4 bg-[#114516] px-3 py-1 rounded-lg">
+              <img 
+                src="/pfp.png" 
+                alt="Profile" 
+                className="h-8 w-8 rounded-full border" 
+              />
+              <div className="text-sm text-white">
+                <p className="font-medium">{userName}</p>
+                <p>{userId}</p>
+              </div>
+              <button 
+                onClick={onLogout} 
+                className="text-white hover:underline !text-xs flex items-center !bg-[#4E0303] !px-1 !py-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="ml-1 hidden lg:inline">Logout</span>
+              </button>
+            </div>
+          ) : (
+            !isStudent && (
+              <Link 
+                to="/login" 
+                className="text-white bg-[#114516] hover:bg-green-800 px-4 py-2 rounded-full text-sm"
+              >
+                Log in
+              </Link>
+            )
+          )}
         </nav>
-      </div>
+        {/* MOBILE MENU (burger + dropdown) */}
+        <div className="relative md:hidden">
+          <button 
+            onClick={toggleMenu} 
+            className="focus:outline-none p-2 !bg-transparent"
+            aria-label={showMenu ? "Close menu" : "Open menu"}
+          >
+            <Menu className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+          </button>
 
-      {/* ===== MOBILE MENU (EXPANDED) ===== */}
-      {mobileMenuOpen && (
-        <div 
-          ref={mobileMenuRef}
-          className="sm:hidden bg-[#5a0000] border-t border-[#700000] py-2"
-        >
-          <nav className="flex flex-col px-4 py-2 space-y-3">
-            {/* Home Link */}
-            <a href="#" className="text-white hover:bg-[#700000] py-2 px-3 rounded-md text-lg">
-              HOME
-            </a>
-            
-            {/* Services Link with Dropdown Toggle */}
-            <button 
-              onClick={toggleServices}
-              className="flex items-center justify-between text-white hover:bg-[#700000] py-2 px-3 rounded-md text-lg text-left"
+          {showMenu && (
+            <div 
+              className="absolute right-0 top-full mt-2 min-w-35 max-w-50 bg-white shadow-lg rounded-md p-2 space-y-1 z-50"
             >
-              <span>SERVICES</span>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d={servicesOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} 
-                />
-              </svg>
-            </button>
-            
-            {/* Services Dropdown Items (Mobile) */}
-            {servicesOpen && (
-              <div className="pl-4 space-y-2">
-                <a href="#" className="block text-white hover:bg-[#700000] py-2 px-3 rounded-md text-base">
-                  Service 1
-                </a>
-                <a href="#" className="block text-white hover:bg-[#700000] py-2 px-3 rounded-md text-base">
-                  Service 2
-                </a>
-              </div>
-            )}
-            
-            {/* Contacts Link with Dropdown Toggle */}
-            <button 
-              onClick={toggleContacts}
-              className="flex items-center justify-between text-white hover:bg-[#700000] py-2 px-3 rounded-md text-lg text-left"
-            >
-              <span>CONTACTS</span>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d={contactsOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} 
-                />
-              </svg>
-            </button>
-            
-            {/* Contacts Dropdown Items (Mobile) */}
-            {contactsOpen && (
-              <div className="pl-4 space-y-2">
-                <a href="#" className="block text-white hover:bg-[#700000] py-2 px-3 rounded-md text-base">
-                  Email
-                </a>
-                <a href="#" className="block text-white hover:bg-[#700000] py-2 px-3 rounded-md text-base">
-                  Address
-                </a>
-              </div>
-            )}
-            
-            {/* Login Button (Mobile) */}
-            <button
-              onClick={onLoginClick}
-              className="bg-green-900 hover:bg-green-800 text-white rounded-md py-2.5 px-4 text-lg w-full text-center"
-              style={{ backgroundColor: '#15803d' }}
-            >
-              Log In
-            </button>
-          </nav>
+              {/* Home (if student) */}
+              {isStudent && (
+                <Link 
+                  to="/student" 
+                  className="block text-xs sm:text-sm font-light text-[#114516] hover:text-green-800 px-3 py-1 rounded transition-colors duration-200"
+                >
+                  Home
+                </Link>
+              )}
+
+              {/* Services */}
+              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3">Services</p>
+              <Link 
+                to="/service1"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+              >
+                Service 1
+              </Link>
+              <Link 
+                to="/service2"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+              >
+                Service 2
+              </Link>
+
+              {/* Contacts */}
+              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3 mt-2">Contacts</p>
+              <Link 
+                to="/contact1"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+              >
+                Contact 1
+              </Link>
+              <Link 
+                to="/contact2"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+              >
+                Contact 2
+              </Link>
+
+              {/* Logout (student only) */}
+              {isStudent && isLoggedIn && (
+                <button
+                  onClick={onLogout}
+                  className="flex items-center text-sm font-light text-white !bg-[#4E0303] hover:bg-red-900 px-3 py-1 rounded transition-colors duration-200 mt-2"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  <span className="text-xs sm:text-sm font-light ">Logout</span>
+                </button>
+              )}
+
+              {/* Log in (landing page only) */}
+              {!isStudent && (
+                <Link 
+                  to="/login"
+                  className="block text-sm font-light !text-white bg-[#114516] hover:bg-green-800 px-4 py-2 rounded transition-colors duration-200 mt-2 text-center"
+                >
+                  Log in
+                </Link>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </header>
   );
-};
-
-export default Header;
+}

@@ -15,7 +15,7 @@ const LandingPage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* ===== HEADER SECTION ===== */}
-      <Header onLoginClick={handleLoginRedirect} />
+      <Header variant="landing" />
 
       {/* ===== MAIN CONTENT SECTION ===== */}
       <main className="flex-grow">
