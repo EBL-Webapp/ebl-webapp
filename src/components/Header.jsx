@@ -25,7 +25,7 @@ export default function Header({
         {/* Logo / Title */}
         <Link to="/" className="flex items-center space-x-2">
           <img src={upLogo} alt="Logo" className="h-12 w-12 sm:h-20 sm:w-20" />
-          <p className="text-white text-xs sm:text-sm">UP Mindanao EBL Dorm</p>
+          <p className="text-white text-xs sm:text-base">UP Mindanao EBL Dorm</p>
         </Link>
 
         {/* Desktop Nav */}

@@ -29,7 +29,7 @@ export default function VerticalNavbar() {
 
   return (
     <aside
-      className={`top-20 left-0 h-[calc(100vh-5rem)] bg-white shadow-lg border-r border-gray-300 flex flex-col transition-all duration-300 ease-in-out z-40 text-sm font-light
+      className={`top-20 left-0 h-[calc(100vh-5rem)] bg-white shadow-lg border-r border-gray-300 flex flex-col transition-all duration-300 ease-in-out z-40 text-xs sm:text-sm font-light
         ${isMobile ? (isOpen ? "w-48" : "w-12 fixed") : "w-54"}`}
     >
       {/* Toggle Arrow - Mobile Only */}
@@ -62,9 +62,9 @@ export default function VerticalNavbar() {
           alt="Profile"
           className="rounded-full w-16 h-16 mb-4 border border-[#114516] mt-0 sm:mt-6"
         />
-        <p className="font-semibold text-base">Juan Dela Cruz</p>
-        <p className="text-sm">Year | Course</p>
-        <p className="text-sm">2021-12345</p>
+        <p className="font-semibold text-sm sm:text-base">Juan Dela Cruz</p>
+        <p className="text-xs sm:text-sm">Year | Course</p>
+        <p className="text-xs sm:text-sm">2021-12345</p>
       </div>
 
       {/* Navbar links */}
