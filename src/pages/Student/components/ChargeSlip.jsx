@@ -2,10 +2,10 @@ import React from 'react';
 
 const ChargeSlipSection = () => {
   return (
-    <div className="bg-white border border-[#4E0303] shadow-md rounded-lg p-6 font-zion text-sm text-gray-800">
-      <h2 className="text-lg font-semibold text-[#4E0303] mb-4">Charge Slip</h2>
+    <div className="bg-white border border-[#4E0303] shadow-md rounded-lg p-4 sm:p-6  font-zion text-sm text-gray-800">
+      <h2 className="text-sm sm:text-base font-semibold text-[#4E0303] mb-4 sm:mb-2">Charge Slip</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 mb-6 text-xs sm:text-sm mt-6">
         <div>
           <span className="font-semibold">Name:</span>
           <div className="border-b border-gray-400" />
@@ -20,7 +20,7 @@ const ChargeSlipSection = () => {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 text-xs sm:text-sm">
         <h3 className="font-semibold mb-2">For the following:</h3>
         <div className="space-y-2">
           <div className="flex justify-between">
@@ -42,7 +42,7 @@ const ChargeSlipSection = () => {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 text-xs sm:text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <span className="font-semibold">Assessed by:</span>
@@ -59,7 +59,7 @@ const ChargeSlipSection = () => {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 text-xs sm:text-sm">
         <h3 className="font-semibold mb-2">List of Appliances</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left border border-gray-300">
@@ -92,7 +92,7 @@ const ChargeSlipSection = () => {
         </div>
       </div>
 
-      <div className="flex justify-end font-semibold">
+      <div className="flex justify-end font-semibold text-xs sm:text-sm">
         <span className="mr-2">TOTAL AMOUNT:</span>
         <div className="w-40 border-b border-gray-400" />
       </div>

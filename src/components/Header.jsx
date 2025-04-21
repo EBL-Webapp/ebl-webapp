@@ -20,12 +20,12 @@ export default function Header({
 
 
   return (
-    <header className="bg-[#4E0303] shadow-md sticky top-0 z-50">
+    <header className="bg-[#4E0303] shadow-md sticky top-0 z-50 text-black text-sm font-light">
       <div className="max-w-screen-xl mx-auto px-4 py-2 flex justify-between items-center">
         {/* Logo / Title */}
         <Link to="/" className="flex items-center space-x-2">
-          <img src={upLogo} alt="Logo" className="h-20 w-20" />
-          <p className="text-white">UP Mindanao EBL Dorm</p>
+          <img src={upLogo} alt="Logo" className="h-12 w-12 sm:h-20 sm:w-20" />
+          <p className="text-white text-xs sm:text-sm">UP Mindanao EBL Dorm</p>
         </Link>
 
         {/* Desktop Nav */}
@@ -101,7 +101,7 @@ export default function Header({
               </div>
               <button 
                 onClick={onLogout} 
-                className="text-white hover:underline text-sm flex items-center"
+                className="text-white hover:underline !text-xs flex items-center !bg-[#4E0303] !px-1 !py-2"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="ml-1 hidden lg:inline">Logout</span>
@@ -122,10 +122,10 @@ export default function Header({
         <div className="relative md:hidden">
           <button 
             onClick={toggleMenu} 
-            className="focus:outline-none p-2"
+            className="focus:outline-none p-2 !bg-transparent"
             aria-label={showMenu ? "Close menu" : "Open menu"}
           >
-            <Menu className="h-6 w-6 text-white" />
+            <Menu className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
           </button>
 
           {showMenu && (
@@ -136,38 +136,38 @@ export default function Header({
               {isStudent && (
                 <Link 
                   to="/student" 
-                  className="block text-sm font-light text-[#114516] hover:text-green-800 px-3 py-1 rounded transition-colors duration-200"
+                  className="block text-xs sm:text-sm font-light text-[#114516] hover:text-green-800 px-3 py-1 rounded transition-colors duration-200"
                 >
                   Home
                 </Link>
               )}
 
               {/* Services */}
-              <p className="text-xs text-gray-500 px-3">Services</p>
+              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3">Services</p>
               <Link 
                 to="/service1"
-                className="block text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
               >
                 Service 1
               </Link>
               <Link 
                 to="/service2"
-                className="block text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
               >
                 Service 2
               </Link>
 
               {/* Contacts */}
-              <p className="text-xs text-gray-500 px-3 mt-2">Contacts</p>
+              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3 mt-2">Contacts</p>
               <Link 
                 to="/contact1"
-                className="block text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
               >
                 Contact 1
               </Link>
               <Link 
                 to="/contact2"
-                className="block text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
+                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
               >
                 Contact 2
               </Link>
@@ -179,8 +179,18 @@ export default function Header({
                   className="flex items-center text-sm font-light text-white !bg-[#4E0303] hover:bg-red-900 px-3 py-1 rounded transition-colors duration-200 mt-2"
                 >
                   <LogOut className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-light ">Logout</span>
+                  <span className="text-xs sm:text-sm font-light ">Logout</span>
                 </button>
+              )}
+
+              {/* Log in (landing page only) */}
+              {!isStudent && (
+                <Link 
+                  to="/login"
+                  className="block text-sm font-light !text-white bg-[#114516] hover:bg-green-800 px-4 py-2 rounded transition-colors duration-200 mt-2 text-center"
+                >
+                  Log in
+                </Link>
               )}
             </div>
           )}

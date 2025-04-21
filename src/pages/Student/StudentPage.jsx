@@ -31,8 +31,8 @@ const StudentPage = () => {
         </div>
 
         {/* Scrollable Main Content */}
-        <main className="flex-1 p-8 overflow-y-auto bg-gray-50 ml-12 md:ml-54 transition-all duration-300">
-          <div className="max-w-4xl w-full mx-auto px-6 py-4">
+        <main className="flex-1 p-1 sm:p-6 overflow-y-auto bg-gray-50 ml-12 md:ml-54 transition-all duration-300">
+          <div className="max-w-4xl w-full mx-auto px-3 sm:px-6 py-4">
           <div className="space-y-6 mt-4 mb-6">
           <div id="offenses" className="scroll-mt-26"><Offenses /></div>
           <div id="student-data" className="scroll-mt-26"><StudentData /></div>
