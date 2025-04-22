@@ -1,16 +1,16 @@
-import {Link} from 'react-router-dom'
+import {Link, Outlet} from 'react-router-dom'
+import Header from './Components/Header';
+import Footer from '../../components/Footer';
 
 function AdminPage() {
     return (
     <div>
 
-      <h1 className="text-3xl font-bold text-center mt-10">Welcome to the Admin Page</h1>
+      {<Header/>}
 
-      <Link to="/overstayPermits">Overstay Permits</Link> <br/>   
-      <Link to="/editOffenses">Edit Offenses</Link>  <br/>
-      <Link to="/studentsArchive">Student Archive</Link> <br/>
-      <Link to="/studentsPayments">Student Payments</Link> <br/>
-      <Link to="/transientRequests">Transient Requests</Link>
+      {<Outlet />}
+
+      {<Footer/>}
 
     </div>
 

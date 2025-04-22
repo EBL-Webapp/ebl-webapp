@@ -25,12 +25,14 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/student/*" element={<StudentPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/overstayPermits" element={<AdminPage_overstayPermits/>} />
-        <Route path="/editOffenses" element={<AdminPage_editOffenses/>} />
-        <Route path="/studentsArchive" element={<AdminPage_studentsArchive/>}  />
-        <Route path="/studentsPayments" element={<AdminPage_studentsPayments/>}  />
-        <Route path="/StransientRequests" element={<AdminPage_transientRequests/>}  />
+        <Route path="/admin" element={<AdminPage />}>
+          <Route index element={<AdminPage_overstayPermits/>} />
+          <Route path="editOffenses" element={<AdminPage_editOffenses/>} />
+          <Route path="overstayPermits" element={<AdminPage_overstayPermits/>}  />
+          <Route path="studentsArchive" element={<AdminPage_studentsArchive/>}  />
+          <Route path="studentsPayments" element={<AdminPage_studentsPayments/>}  />
+          <Route path="transientRequests" element={<AdminPage_transientRequests/>}  />
+        </Route>
 
 
 

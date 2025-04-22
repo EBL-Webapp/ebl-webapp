@@ -7,6 +7,18 @@
   padding: 0;
 }
 
+.marcellus-sc-regular {
+  font-family: "Marcellus SC", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.zain-regular {
+  font-family: "Zain", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
