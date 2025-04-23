@@ -1,5 +1,4 @@
 import React from 'react'
-import '../Styles/overstayPermits.css'
 
 function AdminPage_overstayPermits() {
   return (
