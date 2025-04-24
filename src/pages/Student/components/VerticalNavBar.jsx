@@ -29,7 +29,7 @@ export default function VerticalNavbar() {
 
   return (
     <aside
-      className={`top-20 left-0 h-[calc(100vh-5rem)] bg-white shadow-lg border-r border-gray-300 flex flex-col transition-all duration-300 ease-in-out z-40 text-xs sm:text-sm font-light
+      className={`top-15 sm:top-20 left-0 h-[calc(105vh-5rem)] sm:h-[calc(100vh-5rem)] bg-white shadow-lg border-r border-gray-300 flex flex-col transition-all duration-300 ease-in-out z-40 text-xs sm:text-sm font-light
         ${isMobile ? (isOpen ? "w-48" : "w-12 fixed") : "w-54"}`}
     >
       {/* Toggle Arrow - Mobile Only */}
