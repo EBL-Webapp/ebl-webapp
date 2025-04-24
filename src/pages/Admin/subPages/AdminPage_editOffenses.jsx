@@ -20,8 +20,9 @@ function AdminPage_editOffenses() {
 
   return (
     <>
-      {/* This div is meant for covering the entire screen */}
-        {offense && (
+      <div className='bg-white'>
+          {/* This div is meant for covering the entire screen */}
+          {offense && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/75">
             <div className="bg-white zain-regular text-black rounded-2xl p-5 md:w-[50%]">
               <form className='w-full'>
@@ -181,28 +182,29 @@ function AdminPage_editOffenses() {
         )}
         
           
-          {/* Search Part */}
-          <div className='flex justify-center gap-3 zain-regular text-black max-md:my-5 max-md:mx-10 max-sm:flex-col'>
-            <div >
-              <form className='max-md:flex max-md:flex-col'>
-                <input type='text' placeholder='Search by Name:' id='searchByName' className='py-2 px-4 rounded-2xl border-2'></input>
-                <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' >Search</button>
-              </form>
-            </div>
-            <div>
-              <form className='max-md:flex max-md:flex-col'>
-                <input type='text' placeholder='Student Number:' id='searchByStudentNumber' className='py-2 px-4 rounded-2xl border-2'></input>
-                <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' >Search</button>
-              </form>
-            </div>
-            <div className='flex justify-around'>
-              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black ' onClick={addOffenseType}>Add Offense Type</button>
-              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' onClick={addOffense}>ADD OFFENSE</button>
-            </div>
+        {/* Search Part */}
+        <div className='flex justify-center gap-3 zain-regular text-black max-md:my-5 max-md:mx-10 max-sm:flex-col'>
+          <div >
+            <form className='max-md:flex max-md:flex-col'>
+              <input type='text' placeholder='Search by Name:' id='searchByName' className='py-2 px-4 rounded-2xl border-2'></input>
+              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' >Search</button>
+            </form>
           </div>
+          <div>
+            <form className='max-md:flex max-md:flex-col'>
+              <input type='text' placeholder='Student Number:' id='searchByStudentNumber' className='py-2 px-4 rounded-2xl border-2'></input>
+              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' >Search</button>
+            </form>
+          </div>
+          <div className='flex justify-around'>
+            <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black ' onClick={addOffenseType}>Add Offense Type</button>
+            <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black' onClick={addOffense}>ADD OFFENSE</button>
+          </div>
+        </div>
 
-          {/* The Display Part */}
-          <div className='p-4 m-5 border-2 border-black rounded-2xl zain-regular text-black h-fit'>
+        {/* The Display Part */}
+        <div className='bg-white pb-2'>
+          <div className='p-4 m-4 border-2 border-black rounded-2xl zain-regular text-black h-fit'>
 
             {/* This is one instance of result */}
             <div className='flex justify-between text-[10px] md:text-[12px] lg:text-[20px] items-center'>
@@ -279,9 +281,9 @@ function AdminPage_editOffenses() {
 
             
           </div>
+        </div>
 
-
-
+      </div>
     </>
   )
 }
