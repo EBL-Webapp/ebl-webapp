@@ -4,14 +4,20 @@ import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
 import supabase from "./supabase_client";
+
+// Landing Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
-import StudentPage from "./pages/Student/StudentPage";
+import TransientPage from "./pages/TransientPage"
 
-// The following imports are about the admin and their subpages
+// Student Pages
+import StudentPage from "./pages/Student/StudentPage";
+import StudentInfo from "./pages/Student/Student Info/StudentInfo";
+
+// Admin Pages
 import AdminPage from "./pages/Admin/AdminPage";
 import AdminPage_overstayPermits from "./pages/Admin/subPages/AdminPage_overstayPermits";
-import AdminPage_editOffenses from "./pages/Admin/subPages/AdminPage_editOffenses"
+import AdminPage_editOffenses from "./pages/Admin/subPages/AdminPage_editOffenses";
 import AdminPage_studentsArchive from "./pages/Admin/subPages/AdminPage_studentsArchive";
 import AdminPage_studentsPayments from "./pages/Admin/subPages/AdminPage_studentsPayments";
 import AdminPage_transientRequests from "./pages/Admin/subPages/AdminPage_transientRequests";
@@ -22,22 +28,28 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Landing Page and Login */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="transient" element={<TransientPage />}/>
+
+        {/* Student Routes */}
         <Route path="/student/*" element={<StudentPage />} />
+        <Route path="/student/student-info/*" element={<StudentInfo />} />
+
+        {/* Admin Routes */}
         <Route path="/admin" element={<AdminPage />}>
-          <Route index element={<AdminPage_overstayPermits/>} />
-          <Route path="editOffenses" element={<AdminPage_editOffenses/>} />
-          <Route path="overstayPermits" element={<AdminPage_overstayPermits/>}  />
-          <Route path="studentsArchive" element={<AdminPage_studentsArchive/>}  />
-          <Route path="studentsPayments" element={<AdminPage_studentsPayments/>}  />
-          <Route path="transientRequests" element={<AdminPage_transientRequests/>}  />
+          <Route index element={<AdminPage_overstayPermits />} />
+          <Route path="editOffenses" element={<AdminPage_editOffenses />} />
+          <Route path="overstayPermits" element={<AdminPage_overstayPermits />} />
+          <Route path="studentsArchive" element={<AdminPage_studentsArchive />} />
+          <Route path="studentsPayments" element={<AdminPage_studentsPayments />} />
+          <Route path="transientRequests" element={<AdminPage_transientRequests />} />
         </Route>
 
-
-
+        {/* Catch-all route for unknown pages */}
         <Route
-          path="*" 
+          path="*"
           element={
             <>
               <div>
@@ -61,7 +73,7 @@ function App() {
                 Click on the Vite and React logos to learn more
               </p>
             </>
-          } 
+          }
         />
       </Routes>
     </Router>
