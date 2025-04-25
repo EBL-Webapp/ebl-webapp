@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import supabase from '../supabase_client';
 
 const LoginPage = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -12,13 +14,33 @@ const LoginPage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const handleGoogleLogin = async () => {
+    const {error} = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    })
+
+    if (error) {
+      console.log('Error during Google login:', error.message);
+      alert(`Error during Google login: ${error.message}`);
+
+    }
+
+  }
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#3b0000] p-4">
+      
       {isMobile ? (
         // Mobile layout
-        <div className="bg-gray-100 p-8 rounded-2xl w-full max-w-sm shadow-lg flex flex-col items-center">
+        
+        <div className="bg-gray-100 p-8 rounded-2xl w-full max-w-sm shadow-lg flex flex-col items-center relative">
           {/* User icon */}
+          <Link to='/'>
+            <img src='home.png' className='h-10 absolute left-4 hover:bg-gray-500 hover:transition-all hover:delay-50 hover:p-2 hover:h-12 hover:rounded-full '></img>
+          </Link>
           <div className="bg-white rounded-full w-32 h-32 flex items-center justify-center mb-8">
+
             <svg
               className="w-20 h-20 text-gray-400"
               fill="none"
@@ -35,52 +57,26 @@ const LoginPage = () => {
             </svg>
           </div>
 
-          <form className="w-full space-y-6">
-            {/* Email field */}
-            <div className="flex flex-col">
-              <label htmlFor="mobile-email" className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                Email
-              </label>
-              <input
-                type="email"
-                id="mobile-email"
-                placeholder="Enter your email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800 text-base text-center"
-              />
+          <button onClick={handleGoogleLogin}>
+            <div className='text-gray-600 border-1 border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200'>
+              <img src='google-icon.svg' className='h-9' ></img>
+              <p>Continue with Google</p>
             </div>
-            
-            {/* Password field */}
-            <div className="flex flex-col">
-              <label htmlFor="mobile-password" className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                Password
-              </label>
-              <input
-                type="password"
-                id="mobile-password"
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800 text-base text-center"
-              />
-            </div>
+          </button>
 
-            {/* Login button */}
-            <button
-              type="submit"
-              className="w-full py-3 px-4 bg-green-900 text-white font-semibold rounded-md hover:bg-green-800 transition duration-200 text-base"
-              style={{ backgroundColor: '#166534' }}
-            >
-              Log In
-            </button>
+          
 
-            <div className="text-sm text-gray-600 mt-4 text-center">
-              <a href="#" className="hover:underline">
-                Forgot Password?
-              </a>
-            </div>
-          </form>
         </div>
+
+
       ) : (
         // Desktop layout
-        <div className="bg-gray-100 p-8 rounded-2xl w-full max-w-md text-center shadow-lg">
+        <div className="bg-gray-100 relative p-8 rounded-2xl w-full max-w-md text-center shadow-lg h-[500px]">
+
+          
+          <Link to='/'>
+            <img src='home.png' className='h-15 absolute left-4 hover:bg-gray-500 hover:transition-all hover:delay-50 hover:p-2 hover:h-17 hover:rounded-full '></img>
+          </Link>
           {/* User icon */}
           <div className="flex justify-center mb-6">          
             <div className="bg-white rounded-full w-40 h-40 flex items-center justify-center">
@@ -101,48 +97,13 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <form className="space-y-6">
-            {/* Email field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 text-left">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                placeholder="Email"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800"
-              />
+          <button onClick={handleGoogleLogin}>
+            <div className='text-gray-600 border-1 border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200'>
+              <img src='google-icon.svg' className='h-9' ></img>
+              <p>Continue with Google</p>
             </div>
-            
-            {/* Password field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1 text-left">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                placeholder="Password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800"
-              />
-            </div>
+          </button>
 
-            {/* Login button */}
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-green-900 text-white font-semibold rounded-md hover:bg-green-800 transition duration-200"
-              style={{ backgroundColor: '#166534' }}
-            >
-              Log In
-            </button>
-
-            <div className="text-sm text-gray-600 mt-4">
-              <a href="#" className="hover:underline">
-                Forgot Password?
-              </a>
-            </div>
-          </form>
         </div>
       )}
     </div>

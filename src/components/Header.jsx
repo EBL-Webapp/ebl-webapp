@@ -1,15 +1,27 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, Menu } from "lucide-react";
 import upLogo from "@/assets/up-mindanao-logo.png";
+import supabase from "../supabase_client";
 
 export default function Header({ 
   variant = "landing", 
   isLoggedIn = false, 
-  userName = "", 
   userId = "", 
-  onLogout = () => {} 
+
 }) {
+
+  const navigate = useNavigate();
+
+  const onLogout = async () => {
+    const {error} = await supabase.auth.signOut();
+
+    if (error) {
+      alert(`Error during logout: ${error.message}`);
+    }
+
+    navigate('/')
+  } 
   const [showMenu, setShowMenu] = useState(false);
   const toggleMenu = () => setShowMenu(!showMenu);
 
@@ -17,6 +29,28 @@ export default function Header({
 
   const [showServices, setShowServices] = useState(false);
   const [showContacts, setShowContacts] = useState(false);
+  const [accountLogo, setAccountLogo] = useState("/pfp.png");
+  const [userName, setUserName] = useState("Student User");
+
+  useEffect(() => {
+    // We want to show the image of the account user
+    const logoLoad = async () => {
+      const {data: { session }, error } = await supabase.auth.getSession();
+      if(error){
+        console.log('Error fetching session:', error.message);
+      }
+
+      if (session) {
+        // This is for the Logo
+        setAccountLogo(session.user.user_metadata.avatar_url);
+        console.log('User is logged in:', session.user);
+
+        setUserName(session.user.user_metadata.full_name);
+      }
+    };
+
+    logoLoad();
+  }, [])
 
 
   return (
@@ -91,7 +125,7 @@ export default function Header({
           {isStudent && isLoggedIn ? (
             <div className="flex items-center space-x-4 bg-[#114516] px-3 py-1 rounded-lg">
               <img 
-                src="/pfp.png" 
+                src={accountLogo} 
                 alt="Profile" 
                 className="h-8 w-8 rounded-full border" 
               />

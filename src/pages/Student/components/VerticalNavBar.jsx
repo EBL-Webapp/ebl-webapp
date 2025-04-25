@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { AlertTriangle, UserRound, ReceiptText, MoonStar } from "lucide-react";
+import supabase from "../../../supabase_client";
 
 export default function VerticalNavbar() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [userName, setUserName] = useState("Student User");
+  const [accountLogo, setAccountLogo] = useState("/pfp.png");
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -15,6 +18,23 @@ export default function VerticalNavbar() {
         setIsOpen(true); // always open on large screens
       }
     };
+
+    const logoLoad = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.log("Error fetching session:", error.message);
+      }
+
+      if (session) {
+        // This is for the Logo
+        setAccountLogo(session.user.user_metadata.avatar_url);
+        console.log("User is logged in:", session.user);
+
+        setUserName(session.user.user_metadata.full_name);
+      }
+    };
+
+    logoLoad();
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -58,11 +78,11 @@ export default function VerticalNavbar() {
         } md:opacity-100 md:p-6`}
       >
         <img
-          src="https://via.placeholder.com/64"
+          src={accountLogo}
           alt="Profile"
           className="rounded-full w-16 h-16 mb-4 border border-[#114516] mt-0 sm:mt-6"
         />
-        <p className="font-semibold text-sm sm:text-base">Juan Dela Cruz</p>
+        <p className="font-semibold text-sm sm:text-base">{userName}</p>
         <p className="text-xs sm:text-sm">Year | Course</p>
         <p className="text-xs sm:text-sm">2021-12345</p>
       </div>
