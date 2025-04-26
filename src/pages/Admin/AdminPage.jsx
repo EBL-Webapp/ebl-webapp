@@ -8,7 +8,9 @@ function AdminPage() {
 
       {<Header/>}
 
-      {<Outlet />}
+      <div className='bg-white'>
+        {<Outlet />}
+      </div>
 
       {<Footer/>}
 

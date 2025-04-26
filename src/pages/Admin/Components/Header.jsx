@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {Link, Outlet} from 'react-router-dom'
+import React, { useEffect, useState } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import '../Styles/Header.css';
 import supabase from '../../../supabase_client';
-import { useNavigate } from 'react-router-dom';
+
 
 function Header() {
   const navigate = useNavigate();
@@ -80,11 +82,11 @@ function Header() {
           }`}
         >
           <ul className="flex flex-col gap-1 text-black marcellus-sc-regular">
-            <Link to="/overstayPermits" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Overstay Permits</Link> <hr/>
-            <Link to="/editOffenses" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Edit Offenses</Link><hr/>
-            <Link to="/studentsArchive" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Archive</Link><hr/>
-            <Link to="/studentsPayments" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Payments</Link><hr/>
-            <Link to="/transientRequests" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Transient Requests</Link>
+            <Link to="/admin/overstayPermits" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Overstay Permits</Link> <hr/>
+            <Link to="/admin/editOffenses" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Edit Offenses</Link><hr/>
+            <Link to="/admin/studentsArchive" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Archive</Link><hr/>
+            <Link to="/admin/studentsPayments" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Payments</Link><hr/>
+            <Link to="/admin/transientRequests" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Transient Requests</Link>
           </ul>
         </div>
       </div>

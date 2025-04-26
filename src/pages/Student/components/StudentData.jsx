@@ -1,7 +1,10 @@
 import React from 'react';
 import { Eye, Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const StudentData = ({ student = {} }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white border border-[#4E0303] shadow-md rounded-lg p-4 sm:p-6 font-zion text-sm text-gray-800">
       <div className="flex flex-row justify-between sm:items-start mb-4">
@@ -9,7 +12,6 @@ const StudentData = ({ student = {} }) => {
           Student Information
         </h2>
         <div className="flex flex-row gap-1 sm:gap-2 ">
-          {/* Replace with actual icons/components */}
           <button
             title="View"
             className="text-gray-500 hover:text-gray-500 !text-xs !bg-transparent flex items-center gap-1 !p-1"
@@ -39,6 +41,16 @@ const StudentData = ({ student = {} }) => {
         <Info label="Additional Appliances:" value={student.appliances} />
         <Info label="Emergency Contact Person:" value={student.emergencyContact} />
         <Info label="Phone Number:" value={student.phoneNumber} />
+      </div>
+
+      {/* View All Info button - bottom right */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={() => navigate('/student/student-info')}
+          className="text-xs sm:text-sm text-white bg-[#114516] hover:bg-[#6b0b0b] px-4 py-1 rounded-md transition-colors"
+        >
+          View All Information
+        </button>
       </div>
     </div>
   );
