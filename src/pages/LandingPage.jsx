@@ -29,7 +29,13 @@ const LandingPage = () => {
 
       const {data: userRole, error: checkUserRole_error} = await supabase
       .from('userRoles')
-      .select('roles')
+      .select('roles, desiredRole')
+      .eq('userID', session.user.id)
+      .maybeSingle();
+
+      const {data: studentForm, error: checkStudentForm_error} = await supabase
+      .from('studentMainInfo')
+      .select('userID')
       .eq('userID', session.user.id)
       .maybeSingle();
 
@@ -38,32 +44,31 @@ const LandingPage = () => {
       return;
     }
 
+    if(checkStudentForm_error){
+      console.error('Error in getting student form data:', checkStudentForm_error.message);
+      return;
+    }
+
     if (userRole) {
       console.log('User role:', userRole.roles);
+      console.log('User desired role:', userRole.desiredRole);
+      console.log('All info', userRole);
       // Redirect to the appropriate page based on the role
       if (userRole.roles === 'admin') {
         navigate('/admin');
       } else if (userRole.roles === 'student') {
         navigate('/student');
+      } else if(userRole.roles === 'no_role' && userRole.desiredRole === 'student' && studentForm == null){
+        navigate('/StudentSignIn');
+      } else if((userRole.roles === 'no_role' || userRole.roles === 'denied') && (userRole.desiredRole === 'student' || userRole.desiredRole === 'admin')){
+        navigate('/NoUpdate')
       } else {
         console.log('No valid role found for the user.');
         navigate('/');
       }
-    } else {
-      // In here, we will assign a defaul role for the user if there is no role assigned yet
-      const { error: insertRoleError } = await supabase
-        .from('userRoles')
-        .insert([
-          { 
-            userID: session.user.id, 
-            roles: 'student' 
-          }
-        ]);
-      if (insertRoleError) {
-        console.error('Error inserting default user role:', insertRoleError.message);
-      }
-
-      navigate('/student');
+    } else if(userRole === null && session) {
+      // here we ask what kind of role the user would like to have
+      navigate('/PickRole')
     }
 
     };
