@@ -21,6 +21,12 @@ import AdminPage_editOffenses from "./pages/Admin/subPages/AdminPage_editOffense
 import AdminPage_studentsArchive from "./pages/Admin/subPages/AdminPage_studentsArchive";
 import AdminPage_studentsPayments from "./pages/Admin/subPages/AdminPage_studentsPayments";
 import AdminPage_transientRequests from "./pages/Admin/subPages/AdminPage_transientRequests";
+import AdminPage_editRoles from "./pages/Admin/subPages/AdminPage_editRoles";
+
+// SignUp Pages
+import NoUpdate from "./pages/SignUp/NoUpdate";
+import PickRole from "./pages/SignUp/PickRole";
+import StudentSignIn from "./pages/SignUp/StudentSignIn";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -31,7 +37,7 @@ function App() {
         {/* Landing Page and Login */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="transient" element={<TransientPage />}/>
+        <Route path="/transient" element={<TransientPage />}/>
 
         {/* Student Routes */}
         <Route path="/student/*" element={<StudentPage />} />
@@ -45,7 +51,13 @@ function App() {
           <Route path="studentsArchive" element={<AdminPage_studentsArchive />} />
           <Route path="studentsPayments" element={<AdminPage_studentsPayments />} />
           <Route path="transientRequests" element={<AdminPage_transientRequests />} />
+          <Route path="editRoles" element={<AdminPage_editRoles/>} />
         </Route>
+
+        {/* For Sign UP */}
+        <Route path="NoUpdate" element={<NoUpdate />} />
+        <Route path="PickRole" element={<PickRole/>} />
+        <Route path="StudentSignIn" element={<StudentSignIn/>}/>
 
         {/* Catch-all route for unknown pages */}
         <Route

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import eblBg from '/ebl_bg.png';
+import supabase from '../supabase_client';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -11,6 +12,69 @@ const LandingPage = () => {
   const handleLoginRedirect = () => {
     navigate('/login');
   };
+
+  useEffect(() => {
+
+    const checkUserSessionAndRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('User is logged in:', session.user);
+      }
+      else {
+        console.log('No user session found...');
+      }
+
+      // In this part we have to know if the user has an existing role or not
+
+
+      const {data: userRole, error: checkUserRole_error} = await supabase
+      .from('userRoles')
+      .select('roles, desiredRole')
+      .eq('userID', session.user.id)
+      .maybeSingle();
+
+      const {data: studentForm, error: checkStudentForm_error} = await supabase
+      .from('studentMainInfo')
+      .select('userID')
+      .eq('userID', session.user.id)
+      .maybeSingle();
+
+    if (checkUserRole_error) {
+      console.error('Error fetching user role:', checkUserRole_error.message);
+      return;
+    }
+
+    if(checkStudentForm_error){
+      console.error('Error in getting student form data:', checkStudentForm_error.message);
+      return;
+    }
+
+    if (userRole) {
+      console.log('User role:', userRole.roles);
+      console.log('User desired role:', userRole.desiredRole);
+      console.log('All info', userRole);
+      // Redirect to the appropriate page based on the role
+      if (userRole.roles === 'admin') {
+        navigate('/admin');
+      } else if (userRole.roles === 'student') {
+        navigate('/student');
+      } else if(userRole.roles === 'no_role' && userRole.desiredRole === 'student' && studentForm == null){
+        navigate('/StudentSignIn');
+      } else if((userRole.roles === 'no_role' || userRole.roles === 'denied') && (userRole.desiredRole === 'student' || userRole.desiredRole === 'admin')){
+        navigate('/NoUpdate')
+      } else {
+        console.log('No valid role found for the user.');
+        navigate('/');
+      }
+    } else if(userRole === null && session) {
+      // here we ask what kind of role the user would like to have
+      navigate('/PickRole')
+    }
+
+    };
+
+    checkUserSessionAndRole();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
