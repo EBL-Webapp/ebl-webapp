@@ -124,7 +124,9 @@ function AdminPage_editRoles() {
         .delete()
         .eq('userID', id);
 
-    console.log('Error: ', error.message);
+    if(error){
+      console.log('Error occured: ', error.message)
+    }
     window.location.reload();
   }
 
