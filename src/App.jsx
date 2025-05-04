@@ -8,7 +8,8 @@ import supabase from "./supabase_client";
 // Landing Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
-import TransientPage from "./pages/TransientPage"
+import TransientPage from "./pages/Transient/TransientPage"
+import TransientForm from "./pages/Transient/TransientForm"
 
 // Student Pages
 import StudentPage from "./pages/Student/StudentPage";
@@ -38,6 +39,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/transient" element={<TransientPage />}/>
+        <Route path="/transient/transient-form" element={<TransientForm />}/>
 
         {/* Student Routes */}
         <Route path="/student/*" element={<StudentPage />} />

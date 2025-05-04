@@ -26,6 +26,7 @@ export default function Header({
   const toggleMenu = () => setShowMenu(!showMenu);
 
   const isStudent = variant === "student";
+  const isTransient = variant === "transient";
 
   const [showServices, setShowServices] = useState(false);
   const [showContacts, setShowContacts] = useState(false);
@@ -64,14 +65,24 @@ export default function Header({
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex space-x-2 items-center text-sm font-light text-white">
-          {isStudent && (
-            <Link
-              to="/student"
-              className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
-            >
-              Home
-            </Link>
-          )}
+        {isStudent && (
+          <Link
+            to="/student"
+            className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
+          >
+            Home
+          </Link>
+        )}
+
+        {isTransient && (
+          <Link
+            to="/transient"
+            className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
+          >
+            Transient
+          </Link>
+        )}
+
 
           <div className="relative">
             <button 
@@ -175,6 +186,16 @@ export default function Header({
                   Home
                 </Link>
               )}
+
+              {isTransient && (
+                <Link 
+                  to="/transient" 
+                  className="block text-xs sm:text-sm font-light text-[#114516] hover:text-green-800 px-3 py-1 rounded transition-colors duration-200"
+                >
+                  Transient
+                </Link>
+              )}
+
 
               {/* Services */}
               <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3">Services</p>
