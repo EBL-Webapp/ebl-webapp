@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import eblBg from '/ebl_bg.png';
 import supabase from '../supabase_client';
+import { fetchColumnValue } from '../fetchColumnValue';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -22,54 +23,94 @@ const LandingPage = () => {
       }
       else {
         console.log('No user session found...');
+        return;
       }
+
+      console.log("The user is: ", session.user.id);
 
       // In this part we have to know if the user has an existing role or not
+      // Let's check if the user exists as a student
+      const studentNumber = await fetchColumnValue(
+        "Students",
+        "userID",
+        session.user.id,
+        "studentNumber",
+      );
+      console.log("student number is: ", studentNumber);
+      if (studentNumber){
+        // We need to check if this user is even accepted or not
 
-
-      const {data: userRole, error: checkUserRole_error} = await supabase
-      .from('userRoles')
-      .select('roles, desiredRole')
-      .eq('userID', session.user.id)
-      .maybeSingle();
-
-      const {data: studentForm, error: checkStudentForm_error} = await supabase
-      .from('studentMainInfo')
-      .select('userID')
-      .eq('userID', session.user.id)
-      .maybeSingle();
-
-    if (checkUserRole_error) {
-      console.error('Error fetching user role:', checkUserRole_error.message);
-      return;
-    }
-
-    if(checkStudentForm_error){
-      console.error('Error in getting student form data:', checkStudentForm_error.message);
-      return;
-    }
-
-    if (userRole) {
-      console.log('User role:', userRole.roles);
-      console.log('User desired role:', userRole.desiredRole);
-      console.log('All info', userRole);
-      // Redirect to the appropriate page based on the role
-      if (userRole.roles === 'admin') {
-        navigate('/admin');
-      } else if (userRole.roles === 'student') {
-        navigate('/student');
-      } else if(userRole.roles === 'no_role' && userRole.desiredRole === 'student' && studentForm == null){
-        navigate('/StudentSignIn');
-      } else if((userRole.roles === 'no_role' || userRole.roles === 'denied') && (userRole.desiredRole === 'student' || userRole.desiredRole === 'admin')){
-        navigate('/NoUpdate')
-      } else {
-        console.log('No valid role found for the user.');
-        navigate('/');
+        const {data : isAccepted, error : isAccepted_error} = await supabase
+          .from('Students')
+          .select('isAssessed')
+          .eq("studentNumber", studentNumber)
+          .limit(1);
+        if(isAccepted_error){
+          console.log("There's an error in retrieving if accepted student or not:", isAccepted_error.message);
+        }
+        if(isAccepted[0].isAssessed === true){
+          navigate('/Student/StudentPage');
+          return;
+        } else {
+          navigate('/NoUpdate')
+          return;
+        }
       }
-    } else if(userRole === null && session) {
-      // here we ask what kind of role the user would like to have
-      navigate('/PickRole')
-    }
+
+
+
+      // Then let's check if the user is admin
+      const adminID = await fetchColumnValue(
+        "admin",
+        "userID",
+        session.user.id,
+        "adminID",
+      );
+      console.log("the session ced: ", session.user.id);
+      console.log('admin ID:', adminID);
+      if(adminID){
+        // Kailangan din ito icheck if whether accepted admin na ba siya or not.
+
+        const {data : isItAccepted, error : isItAccepted_error} = await supabase
+          .from('admin')
+          .select('isAccepted')
+          .eq("adminID", adminID)
+          .limit(1);
+
+        if(isItAccepted_error){
+          console.log("There's an error in retrieving if accepted admin or not:", isItAccepted_error.message);
+          return;
+        }
+
+        console.log("Does it exist?", isItAccepted[0]);
+        
+        if(isItAccepted && (isItAccepted[0].isAccepted === true)){
+          navigate('/admin');
+          return;
+        } else {
+          navigate('/NoUpdate')
+          return;
+        }
+      }
+
+
+
+      // Let's check if the user is a transient
+      const transientID = await fetchColumnValue(
+        "Transient",
+        "userID",
+        session.user.id,
+        "transientID",
+      )
+      if(transientID){
+        navigate("/Transient/TransientPage");
+        return;
+      }
+
+
+
+      // If the user is has a session and is still in the page that means the user has not picked a role.
+      navigate("/PickRole")
 
     };
 
