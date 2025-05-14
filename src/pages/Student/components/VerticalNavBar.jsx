@@ -2,16 +2,19 @@ import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { AlertTriangle, UserRound, ReceiptText, MoonStar } from "lucide-react";
 import supabase from "../../../supabase_client";
-
+import { fetchColumnValue } from "../../../fetchColumnValue";
 export default function VerticalNavbar() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [userName, setUserName] = useState("Student User");
   const [accountLogo, setAccountLogo] = useState("/pfp.png");
+  const [studentNumber, setStudentNumber] = useState("");
+
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   useEffect(() => {
+    load_studNum();
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth >= 768) {
@@ -40,12 +43,27 @@ export default function VerticalNavbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const load_studNum = async () => {
+
+    const {data : session, error : error_session} = await supabase.auth.getSession();
+    if(error_session){
+      console.log("There was an error in getting the session: ", error_session.message);
+      return;
+    }
+
+    const temp = await fetchColumnValue("Students", "userID", session.session.user.id, "studentNumber");
+
+    setStudentNumber(temp);
+  }
+
   const navLinks = [
     { label: "Offenses", icon: AlertTriangle, href: "#offenses" },
     { label: "Student Data", icon: UserRound, href: "#student-data" },
     { label: "Charge Slip", icon: ReceiptText, href: "#charge-slip" },
     { label: "Overnight Slip", icon: MoonStar, href: "#overnight-slip" },
   ];
+
+
 
   return (
     <aside
@@ -84,7 +102,7 @@ export default function VerticalNavbar() {
         />
         <p className="font-semibold text-sm sm:text-base">{userName}</p>
         <p className="text-xs sm:text-sm">Year | Course</p>
-        <p className="text-xs sm:text-sm">2021-12345</p>
+        <p className="text-xs sm:text-sm">{studentNumber}</p>
       </div>
 
       {/* Navbar links */}
