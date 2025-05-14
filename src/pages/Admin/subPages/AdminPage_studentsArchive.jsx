@@ -48,9 +48,12 @@ export default function StudentsArchive() {
               <td className="px-4 py-3">John Doe</td>
               <td className="px-4 py-3">202301234</td>
               <td className="px-4 py-3">01/01/20</td>
-              <td className="px-4 py-3 text-center">
-                <button className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900">
-                  Edit Student Data
+              <td className="px-4 py-3 text-center sm:space-x-2 space-y-1">
+                <button className="bg-[#114516]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-green-800">
+                  Unarchive
+                </button>
+                <button className="bg-[#4E0303]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-red-900">
+                  Delete
                 </button>
               </td>
             </tr>
@@ -59,20 +62,26 @@ export default function StudentsArchive() {
               <td className="px-4 py-3">Jane Smith</td>
               <td className="px-4 py-3">202305678</td>
               <td className="px-4 py-3">01/01/20</td>
-              <td className="px-4 py-3 text-center">
-                <button className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900">
-                  Edit Student Data
+              <td className="px-4 py-3 text-center sm:space-x-2 space-y-1">
+                <button className="bg-[#114516]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-green-800">
+                  Unarchive
+                </button>
+                <button className="bg-[#4E0303]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-red-900">
+                  Delete
                 </button>
               </td>
             </tr>
             {/* Dummy Data Row 3 */}
             <tr className="border-t border-gray-200 text-sm sm:text-base">
-              <td className="px-4 py-3">Michael Brown</td>
+              <td className="px-4 py-3">Michael Brown</td>  
               <td className="px-4 py-3">202201234</td>
               <td className="px-4 py-3">01/01/20</td>
-              <td className="px-4 py-3 text-center">
-                <button className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900">
-                  Edit Student Data
+              <td className="px-4 py-3 text-center sm:space-x-2 space-y-1">
+                <button className="bg-[#114516]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-green-800">
+                  Unarchive
+                </button>
+                <button className="bg-[#4E0303]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-red-900">
+                  Delete
                 </button>
               </td>
             </tr>
@@ -81,9 +90,12 @@ export default function StudentsArchive() {
               <td className="px-4 py-3">Emily Davis</td>
               <td className="px-4 py-3">202307890</td>
               <td className="px-4 py-3">01/01/20</td>
-              <td className="px-4 py-3 text-center">
-                <button className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900">
-                  Edit Student Data
+              <td className="px-4 py-3 text-center sm:space-x-2 space-y-1">
+                <button className="bg-[#114516]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-green-800">
+                  Unarchive
+                </button>
+                <button className="bg-[#4E0303]/90 text-white w-18 sm:w-20 px-3 py-1 rounded-2xl hover:bg-red-900">
+                  Delete
                 </button>
               </td>
             </tr>
