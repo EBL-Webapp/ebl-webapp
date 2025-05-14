@@ -61,7 +61,7 @@ export default function VerticalNavbar() {
         />
         <p className="font-semibold text-sm sm:text-base">Juan Dela Cruz</p>
         <p className="text-xs sm:text-sm">Year | Course</p>
-        <p className="text-xs sm:text-sm">2021-12345</p>
+        <p className="text-xs sm:text-sm">Hello</p>
       </div>
 
       {/* Navbar links */}
