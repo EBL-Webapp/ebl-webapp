@@ -5,20 +5,8 @@ import Acknowledgement from "./SInfo-components/Acknowledgement";
 import Header from '@/components/Header';
 import SIVerticalNavbar from "./SInfo-components/SIVerticalNavBar";
 import Footer from '@/components/Footer';
-import { useRedirect } from "../../../redirect";
-import { useEffect } from "react";
 
 const StudentPage = () => {
-
-  const redirect = useRedirect();
-  useEffect(() => {
-    const runRedirect = async () => {
-      await redirect("student");
-    };
-
-    runRedirect();
-  }, [redirect])
-
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
       {/* Fixed Header */}

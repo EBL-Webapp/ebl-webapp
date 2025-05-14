@@ -1,19 +1,10 @@
-import { useEffect } from "react";
+import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import roomImage from '/ebl_bg.png';
-import { useRedirect } from '../../redirect';
 
 const TransientDashboard = () => {
-
-
-  const redirect = useRedirect();
-  useEffect(() => {
-    redirect("transient")
-  }, [redirect])
-
-
   const navigate = useNavigate();
 
   const handleBookNow = () => {
