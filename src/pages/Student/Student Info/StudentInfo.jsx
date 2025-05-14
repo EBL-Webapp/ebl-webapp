@@ -13,7 +13,7 @@ const StudentPage = () => {
   const redirect = useRedirect();
   useEffect(() => {
     const runRedirect = async () => {
-      await redirect("admin");
+      await redirect("student");
     };
 
     runRedirect();
