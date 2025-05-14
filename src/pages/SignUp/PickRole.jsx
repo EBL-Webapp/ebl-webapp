@@ -15,19 +15,23 @@ const PickRole = () => {
         console.log('An error in getting Session: ', errorSession);
     }
 
-    // Redirect based on the selected role
-    const {error : errorInput} = await supabase
-        .from('userRoles')
-        .insert([{
-            userID : session.user.id,
-            desiredRole : role,
-        }]);
-    
-    if(errorInput){
-        console.log('Error in adding information:', errorInput);
-    }
-
     if(role === 'admin'){
+
+      // We insert the entry/request to be admin
+      const {error : errorAddingAdmin} = await supabase
+        .from("admin")
+        .insert([{
+          "userID" : session.user.id,
+          "adminName" : session.user.user_metadata.full_name,
+          "isAccepted" : false,
+        }])
+
+      if(errorAddingAdmin){
+        alert("There was an error in adding you as admin: " + errorAddingAdmin.message);
+        return;
+      }
+
+
       navigate('/NoUpdate')
     } else {
       navigate('/StudentSignIn')

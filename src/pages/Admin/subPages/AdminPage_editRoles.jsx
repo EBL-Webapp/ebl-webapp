@@ -1,174 +1,226 @@
-import { React, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import supabase from '../../../supabase_client';
 
 function AdminPage_editRoles() {
-  const [userData, setUserData] = useState([]);
-  const [deniedPeople, setDeniedPeople] = useState([]);
- 
+  const [requests, setRequests] = useState([]);
+  const [admins, setAdmins]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Fetch both pending requests and current admins
   useEffect(() => {
-
-    const session = () => {
-        const {data : dataSession, error : errorSession} = supabase.auth.getSession();
-        if(error){
-            console.log('Error: ', errorSession.message);
-        }
-
-        console.log('Session Data: ', dataSession);
-    }
-
-
-
-
-    const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('userRoles')
-        .select(`
-          userID,
-          roles,
-          desiredRole,
-          safe_users (
-            full_name,
-            email
-          )
-        `)
-        // only bring back users whose role = 'no_role'
-        .eq('roles', 'no_role');
-
-      if (error) {
-        console.error('Fetch error:', error);
-        return;
-      }
-
-      // flatten the nested array into a simple .role
-      const usersWithRoles = data.map((u) => ({
-        id:        u.userID,
-        full_name: u.safe_users.full_name,
-        role:      u.roles,
-        desiredRole: u.desiredRole,
-        email:     u.safe_users.email,
-      }));
-
-      setUserData(usersWithRoles);
-
-      const {data : deniedData, error : deniedError} = await supabase
-        .from('userRoles')
-        .select(`
-            
-            userID,
-            roles,
-            desiredRole,
-            safe_users(
-                full_name,
-                email
-            )
-        `)
-        .eq('roles', 'denied');
-
-        console.log('This is the data:', deniedData);
-
-        if(deniedError){
-            console.log('Error:', deniedError.message);
-            return;
-        }
-
-        const deniedPeopleMap = deniedData.map((u) => ({
-            id:        u.userID,
-            full_name: u.safe_users.full_name,
-            role:      u.roles,
-            desiredRole: u.desiredRole,
-            email:     u.safe_users.email,
-          }));
-
-        setDeniedPeople(deniedPeopleMap);
-
-
-    };
-
-    fetchData();
+    fetchAllRequests();
+    fetchAdmins();
   }, []);
 
+  // 1) Fetch pending (isAccepted = false) items
+  const fetchAllRequests = async () => {
+    setLoading(true);
+    setFetchError(null);
 
-  const handleAccept = async (id, desiredRole) => {
-    const {error} = await supabase
-        .from("userRoles")
-        .update({
-            'roles' : desiredRole,
-        })
-        .eq('userID', id);
+    const [studentsRes, transientsRes, adminsRes] = await Promise.all([
+      supabase
+        .from('Students')
+        .select('studentNumber, userID, isAssessed, isArchived, safe_users(full_name, email)')
+        .eq('isAssessed', false),
+      supabase
+        .from('Transient')
+        .select(
+          'transientID, userID, nameOfOccupant, completeAddress, contactNumber, agencyConnected, emergencyContact, isAccepted'
+        )
+        .eq('isAccepted', false),
+      supabase
+        .from('admin')
+        .select('adminID, userID, adminName, isAccepted, safe_users(email)')
+        .eq('isAccepted', false),
+    ]);
 
-    if(error){
-        console.log("Error in accepting: ", error.message);
+    if (studentsRes.error || transientsRes.error || adminsRes.error) {
+      setFetchError(
+        studentsRes.error?.message ||
+        transientsRes.error?.message ||
+        adminsRes.error?.message
+      );
+      setLoading(false);
+      return;
     }
-    window.location.reload();
 
-  }
+    const studentRequests = studentsRes.data.map(r => ({
+      source: 'student',
+      id:     r.studentNumber,
+      name:   r.safe_users.full_name,
+      email:  r.safe_users.email,
+      isAccepted: r.isAssessed,
+    }));
 
-  const handleDeny = async (id) => {
-    const {error} = await supabase
-        .from("userRoles")
-        .update({
-            roles : 'denied',
-        })
-        .eq("userID", id);
+    const transientRequests = transientsRes.data.map(r => ({
+      source: 'transient',
+      id:     r.transientID,
+      name:   r.nameOfOccupant,
+      email:  r.userID,            // no email join here?
+      isAccepted: r.isAccepted,
+    }));
 
-    if(error){
-        console.log('An error occured:', error.message);
+    const adminRequests = adminsRes.data.map(r => ({
+      source: 'admin',
+      id:     r.adminID,
+      name:   r.adminName,
+      email:  r.safe_users.email,
+      isAccepted: r.isAccepted,
+    }));
+
+    setRequests([...studentRequests, ...transientRequests, ...adminRequests]);
+    setLoading(false);
+  };
+
+  // 2) Fetch current (isAccepted = true) admins
+  const fetchAdmins = async () => {
+    const { data, error } = await supabase
+      .from('admin')
+      .select('adminID, adminName, safe_users(email)')
+      .eq('isAccepted', true);
+
+    if (error) {
+      console.error('Error fetching admins:', error.message);
+      return;
     }
 
-    window.location.reload();
-  }
+    setAdmins(
+      data.map((r) => ({
+        id:        r.adminID,
+        adminName: r.adminName,
+        email:     r.safe_users.email,
+      }))
+    );
+  };
 
-  const handleDelete = async (id) => {
-    const {error} = await supabase
-        .from('userRoles')
-        .delete()
-        .eq('userID', id);
-
-    if(error){
-      console.log('Error occured: ', error.message)
+  // 3) Accept handler: updates the row, then refreshes both lists as needed
+  const handleAccept = async (source, id) => {
+    let table, pk, updateObj;
+    if (source === 'student') {
+      table = 'Students';    pk = 'studentNumber'; updateObj = { isAssessed: true };
+    } else if (source === 'transient') {
+      table = 'transients';  pk = 'transientID'; updateObj = { isAccepted: true };
+    } else {
+      table = 'admin';       pk = 'adminID';     updateObj = { isAccepted: true };
     }
-    window.location.reload();
-  }
+
+    const { error } = await supabase
+      .from(table)
+      .update(updateObj)
+      .eq(pk, id);
+
+    if (error) {
+      console.error('Error accepting:', error.message);
+      return;
+    }
+
+    // remove from requests list
+    setRequests(reqs => reqs.filter(r => !(r.source === source && r.id === id)));
+
+    // if we just accepted an admin, reload the admin list
+    if (source === 'admin') {
+      fetchAdmins();
+    }
+  };
+
+  // 4) Deny handler: deletes the row, then removes from requests
+  const handleDeny = async (source, id) => {
+    let table, pk;
+    if (source === 'student') {
+      table = 'Students';   pk = 'studentNumber';
+    } else if (source === 'transient') {
+      table = 'transients'; pk = 'transientID';
+    } else {
+      table = 'admin';      pk = 'adminID';
+    }
+
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq(pk, id);
+
+    if (error) {
+      console.error('Error denying:', error.message);
+      return;
+    }
+
+    setRequests(reqs => reqs.filter(r => !(r.source === source && r.id === id)));
+  };
+
+  // 5) Remove an already-accepted admin
+  const handleRemoveAdmin = async (id) => {
+    const { error } = await supabase
+      .from('admin')
+      .delete()
+      .eq('adminID', id);
+
+    if (error) {
+      alert('Error in deleting the admin: ' + error.message);
+      return;
+    }
+    fetchAdmins();
+  };
+
+  if (loading)   return <p>Loading…</p>;
+  if (fetchError) return <p className="text-red-600">Error: {fetchError}</p>;
 
   return (
     <div className="py-5">
+      {/* Pending Requests */}
       <div className="mx-2 p-2 border-2 border-black rounded-2xl flex flex-col gap-2 text-black zain-regular">
-        {userData.map((u) => (
-          <div key={u.id} className="flex justify-between items-center">
-            <p>Name: {u.full_name}</p>
-            <p>Requested Role: {u.desiredRole}</p>
-            <p>Email: {u.email}</p>
-            <div>
-              <button className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600" onClick={() => handleDeny(u.id)}>
-                Deny
-              </button>
-              <button className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600" onClick={() => handleAccept(u.id, u.desiredRole)}>
-                Accept
-              </button>
+        <h2 className="marcellus-sc-regular text-2xl">List of Requests</h2>
+        <hr />
+        {requests.length > 0 ? (
+          requests.map((r) => (
+            <div key={`${r.source}-${r.id}`} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
+              <p>Name: {r.name}</p>
+              <p>Type: {r.source[0].toUpperCase() + r.source.slice(1)}</p>
+              <p>Email: {r.email}</p>
+              <div>
+                <button
+                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
+                  onClick={() => handleDeny(r.source, r.id)}
+                >
+                  Deny
+                </button>
+                <button
+                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
+                  onClick={() => handleAccept(r.source, r.id)}
+                >
+                  Accept
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-xl">No pending requests</p>
+        )}
       </div>
 
-      <div className='mt-3 mx-2 p-2 border-black border-2 rounded-2xl flex flex-col gap-2 text-black zain-regular bg-[#4e03032e]'>
-        <p className='marcellus-sc-regular '>List of denied roles: </p> <hr/>
-
-        {deniedPeople.map((i) => (
-            <div  className="flex justify-between items-center">
-                <p>Name: {i.full_name}</p>
-                <p>Requested Role: {i.desiredRole}</p>
-                <p>Email: {i.email}</p>
-                <div>
-                <button className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600" onClick={() => handleDelete(i.id)}>
-                    Delete
-                </button>
-                <button className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600" onClick={() => handleAccept(i.id, i.desiredRole)}>
-                    Accept
-                </button>
-                </div>
+      {/* Current Admins */}
+      <div className="mx-2 mt-5 p-2 border-2 border-black rounded-2xl flex flex-col gap-2 text-black zain-regular">
+        <h2 className="marcellus-sc-regular text-2xl">List of Admins</h2>
+        <hr />
+        {admins.length > 0 ? (
+          admins.map((a) => (
+            <div key={a.id} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
+              <p>Name: {a.adminName}</p>
+              <p>Email: {a.email}</p>
+              <button
+                className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
+                onClick={() => handleRemoveAdmin(a.id)}
+              >
+                Remove
+              </button>
             </div>
-        ))}
-
+          ))
+        ) : (
+          <p className="text-xl">No records of admin</p>
+        )}
+        <p className="text-sm">
+          <strong>*You cannot delete your own account</strong>
+        </p>
       </div>
     </div>
   );
