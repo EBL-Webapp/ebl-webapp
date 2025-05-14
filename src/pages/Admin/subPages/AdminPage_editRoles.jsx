@@ -173,7 +173,7 @@ function AdminPage_editRoles() {
         <hr />
         {requests.length > 0 ? (
           requests.map((r) => (
-            <div key={`${r.source}-${r.id}`} className="flex justify-between items-center text-xl zain-regular">
+            <div key={`${r.source}-${r.id}`} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
               <p>Name: {r.name}</p>
               <p>Type: {r.source[0].toUpperCase() + r.source.slice(1)}</p>
               <p>Email: {r.email}</p>
@@ -204,7 +204,7 @@ function AdminPage_editRoles() {
         <hr />
         {admins.length > 0 ? (
           admins.map((a) => (
-            <div key={a.id} className="flex justify-between items-center text-xl zain-regular">
+            <div key={a.id} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
               <p>Name: {a.adminName}</p>
               <p>Email: {a.email}</p>
               <button
