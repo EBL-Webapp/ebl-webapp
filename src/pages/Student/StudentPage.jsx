@@ -1,3 +1,4 @@
+import { Routes, Route } from "react-router-dom";
 import Offenses from "./components/Offenses";
 import StudentData from "./components/StudentData";
 import ChargeSlip from "./components/ChargeSlip";
@@ -5,20 +6,8 @@ import OvernightSlip from "./components/OvernightSlip";
 import Header from '@/components/Header';
 import VerticalNavbar from "./components/VerticalNavBar";
 import Footer from '@/components/Footer';
-import { useRedirect } from "../../redirect";
-import { useEffect } from "react";
 
 const StudentPage = () => {
-
-  const redirect = useRedirect();
-  useEffect(() => {
-    const runRedirect = async () => {
-      await redirect("student");
-    };
-
-    runRedirect();
-  }, [redirect])
-
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
       {/* Fixed Header */}
