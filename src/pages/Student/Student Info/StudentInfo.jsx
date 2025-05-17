@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import DataPrivacy from "./SInfo-components/DataPrivacy";
 import DormAccommodation from "./SInfo-components/DormAccommodation";
 import Acknowledgement from "./SInfo-components/Acknowledgement";
 import Header from '@/components/Header';
@@ -45,7 +44,6 @@ const StudentPage = () => {
         <main className="flex-1 p-1 sm:p-6 overflow-y-auto bg-gray-50 ml-12 md:ml-54 transition-all duration-300">
           <div className="max-w-4xl w-full mx-auto px-3 sm:px-6 py-4">
             <div className="space-y-6 mt-4 mb-6">
-              <div id="data-privacy" className="scroll-mt-26"><DataPrivacy /></div>
               <div id="dorm-accommodation" className="scroll-mt-26"><DormAccommodation /></div>
               <div id="acknowledgement" className="scroll-mt-26"><Acknowledgement /></div>
             </div>
