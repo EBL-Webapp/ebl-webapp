@@ -36,8 +36,6 @@ const DormitoryAccommodation = () => {
     }
 
     setParentInfo(parentInfo_temp);
-
-    console.log(data);
     setInformation(data[0]);
   }
 
