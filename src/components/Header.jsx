@@ -108,7 +108,7 @@ export default function Header({
                 setShowServices(prev => !prev);
                 setShowContacts(false); // optional: closes Services if it's open
               }} 
-              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
+              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
             >
               Services <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showServices ? 'rotate-180' : ''}`} />
             </button>
@@ -133,7 +133,7 @@ export default function Header({
                 setShowContacts(prev => !prev);
                 setShowServices(false); // optional: closes Services if it's open
               }} 
-              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
+              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
             >
               Contacts <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showContacts ? 'rotate-180' : ''}`} />
             </button>
