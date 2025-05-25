@@ -119,59 +119,64 @@ const [formData, setFormData] = useState({});
       return;
     }
 
-    // Now we insert the data for the guardians
-    // We insert for the father first
-    const {error: error_insertingFather} = await supabase
-      .from("guardianInformation")
-      .insert([{
-        "studentNumber": formData.studentId,
-        "guardianType": "father",
-        "Name": formData.fatherName,
-        "Occupation": formData.fatherOccupation,
-        "Age": formData.fatherAge,
-        "businessAddress_or_employmentAddress": formData.fatherBusinessAddress,
-        "contactNumber": formData.fatherContact
-      }]);
+    // Insert Father only if name is not empty
+    if (formData.fatherName?.trim()) {
+      const { error: error_insertingFather } = await supabase
+        .from("guardianInformation")
+        .insert([{
+          studentNumber: formData.studentId,
+          guardianType: "father",
+          Name: formData.fatherName,
+          Occupation: formData.fatherOccupation,
+          Age: formData.fatherAge,
+          businessAddress_or_employmentAddress: formData.fatherBusinessAddress,
+          contactNumber: formData.fatherContact
+        }]);
 
-    if(error_insertingFather){
-      console.log("There was an error in insert father: ", error_insertingFather.message);
-      return;
+      if (error_insertingFather) {
+        console.log("There was an error in insert father: ", error_insertingFather.message);
+        return;
+      }
     }
 
-    // Now we insert for the mother
-    const {error: error_insertingMother} = await supabase
-      .from("guardianInformation")
-      .insert([{
-        "studentNumber": formData.studentId,
-        "guardianType": "mother",
-        "Name": formData.motherName,
-        "Occupation": formData.motherOccupation,
-        "Age": formData.motherAge,
-        "businessAddress_or_employmentAddress": formData.motherBusinessAddress,
-        "contactNumber": formData.motherContact
-      }]);
-      
-    if(error_insertingMother){
-      console.log("Error in inserting mother:", error_insertingMother.message);
-      return;
+    // Insert Mother only if name is not empty
+    if (formData.motherName?.trim()) {
+      const { error: error_insertingMother } = await supabase
+        .from("guardianInformation")
+        .insert([{
+          studentNumber: formData.studentId,
+          guardianType: "mother",
+          Name: formData.motherName,
+          Occupation: formData.motherOccupation,
+          Age: formData.motherAge,
+          businessAddress_or_employmentAddress: formData.motherBusinessAddress,
+          contactNumber: formData.motherContact
+        }]);
+
+      if (error_insertingMother) {
+        console.log("Error in inserting mother:", error_insertingMother.message);
+        return;
+      }
     }
 
-    // Now we insert the guardian in Davao
-    const {error: error_insertingGuardianDavao} = await supabase
-      .from("guardianInformation")
-      .insert([{
-        "studentNumber": formData.studentId,
-        "guardianType": "guardian",
-        "Name": formData.guardianName,
-        "homeAddress": formData.guardianHomeAddress,
-        "contactNumber": formData.guardianContact,
-        "businessAddress_or_employmentAddress": formData.guardianBusinessAddress
-      }]);
+    // Insert Davao Guardian only if name is not empty
+    if (formData.guardianName?.trim()) {
+      const { error: error_insertingGuardianDavao } = await supabase
+        .from("guardianInformation")
+        .insert([{
+          studentNumber: formData.studentId,
+          guardianType: "guardian",
+          Name: formData.guardianName,
+          contactNumber: formData.guardianContact,
+          businessAddress_or_employmentAddress: formData.guardianBusinessAddress
+        }]);
 
-    if(error_insertingGuardianDavao){
-      console.log("There's an error in inserting guardian:", error_insertingGuardianDavao.message);
-      return;
+      if (error_insertingGuardianDavao) {
+        console.log("There's an error in inserting guardian:", error_insertingGuardianDavao.message);
+        return;
+      }
     }
+
 
     const {error: error_insertingInformationAndInstructionSheet} = await supabase
       .from("Information_and_Instruction_Sheet")
@@ -198,36 +203,42 @@ const [formData, setFormData] = useState({});
     // guardian{n}_{field}
 
     // In here we insert the first guardian
-    const {error: error_insertingGuardian1} = await supabase
-      .from("Designated_Guardians")
-      .insert([{
-        "studentNumber": formData.studentId,
-        "fullName_of_Guardian": formData.guardian1_fullName,
-        "relationshipToResident": formData.guardian1_relationship,
-        "completeAddress": formData.guardian1_address,
-        "contactNumber": formData.guardian1_contact
-      }]);
+    // Insert Guardian 1 only if name is not empty
+    if (formData.guardian1_fullName?.trim()) {
+      const { error: error_insertingGuardian1 } = await supabase
+        .from("Designated_Guardians")
+        .insert([{
+          studentNumber: formData.studentId,
+          fullName_of_Guardian: formData.guardian1_fullName,
+          relationshipToResident: formData.guardian1_relationship,
+          completeAddress: formData.guardian1_address,
+          contactNumber: formData.guardian1_contact
+        }]);
 
-    if(error_insertingGuardian1){
-      console.log("Error inserting guardian1: ", error_insertingGuardian1.message);
-      return;
+      if (error_insertingGuardian1) {
+        console.log("Error inserting guardian1: ", error_insertingGuardian1.message);
+        return;
+      }
     }
 
-    // We are now inserting guardian2
-    const {error: error_insertingGuardian2} = await supabase
-      .from("Designated_Guardians")
-      .insert([{
-        "studentNumber": formData.studentId,
-        "fullName_of_Guardian": formData.guardian2_fullName,
-        "relationshipToResident": formData.guardian2_relationship,
-        "completeAddress": formData.guardian2_address,
-        "contactNumber": formData.guardian2_contact
-      }]);
+    // Insert Guardian 2 only if name is not empty
+    if (formData.guardian2_fullName?.trim()) {
+      const { error: error_insertingGuardian2 } = await supabase
+        .from("Designated_Guardians")
+        .insert([{
+          studentNumber: formData.studentId,
+          fullName_of_Guardian: formData.guardian2_fullName,
+          relationshipToResident: formData.guardian2_relationship,
+          completeAddress: formData.guardian2_address,
+          contactNumber: formData.guardian2_contact
+        }]);
 
-    if(error_insertingGuardian2){
-      console.log("Error inserting guardian2: ", error_insertingGuardian2.message);
-      return;
+      if (error_insertingGuardian2) {
+        console.log("Error inserting guardian2: ", error_insertingGuardian2.message);
+        return;
+      }
     }
+
 
     // Now in here we insert the appliances
     const studentNumber = formData.studentId;
@@ -433,7 +444,7 @@ const [formData, setFormData] = useState({});
           </div>
           <div className="mt-4">
             <label className="block text-sm"><strong>Sign by typing your name.</strong> You agree that you certify to the best of you knowledge as to the accuracy of the information supplied herein.</label>
-            <input name="studentSignature_applicationForm" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Type your full name here" />
+            <input required name="studentSignature_applicationForm" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Type your full name here" />
           </div>
         </div>
       </fieldset>
@@ -591,6 +602,7 @@ const [formData, setFormData] = useState({});
             <input
               type="text"
               name="designatedGuardians_parentSignature"
+              required
               onChange={handleChange}
               className="border rounded p-2 w-full"
             />
@@ -600,6 +612,7 @@ const [formData, setFormData] = useState({});
               <input
                 type="text"
                 name="designatedGuardians_studentSignature"
+                required
                 onChange={handleChange}
                 className="border rounded p-2 w-full"
               />
@@ -648,6 +661,7 @@ const [formData, setFormData] = useState({});
             <label className="block text-sm">Parent’s Printed Name</label>
             <input
               type="text"
+              required
               name="applianceDeclaration_parentSignature"
               onChange={handleChange}
               className="border rounded p-2 w-full"
@@ -658,6 +672,7 @@ const [formData, setFormData] = useState({});
               <input
                 type="text"
                 name="applianceDeclaration_studentSignature"
+                required
                 onChange={handleChange}
                 className="border rounded p-2 w-full"
               />
@@ -730,6 +745,7 @@ const [formData, setFormData] = useState({});
               type="text"
               name="agreementResidentSign"
               onChange={handleChange}
+              required
               className="border rounded p-2 w-full"
             />
           </div>
@@ -739,6 +755,7 @@ const [formData, setFormData] = useState({});
               type="text"
               name="agreementParentSign"
               onChange={handleChange}
+              required
               className="border rounded p-2 w-full"
             />
           </div>

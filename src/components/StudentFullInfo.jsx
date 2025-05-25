@@ -1,95 +1,212 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import supabase from '../supabase_client';
 
 function StudentFullInfo({ isOpen, onClose, studentNumber }) {
-  if (!isOpen) return null;
-
-  // Mock data - in real implementation, this would come from props or API call
-  const studentData = {
-    semester: "1st Semester 2025",
-    name: "Dela Cruz, Juan Carlos",
-    sex: "Male",
-    age: "20",
-    studentId: studentNumber,
-    course: "Computer Science",
-    yearLevel: "3",
-    dob: "2004-05-15",
-    pob: "Davao City",
-    religion: "Catholic",
-    civilStatus: "Single",
-    nationality: "Filipino",
-    email: "juan.delacruz@up.edu.ph",
-    homeAddress: "123 Main Street, Davao City",
-    contact: "09123456789",
-    // Parent information
-    fatherName: "Carlos Dela Cruz",
-    fatherOccupation: "Engineer",
-    fatherAge: "50",
-    fatherBusinessAddress: "ABC Engineering Corp, Davao City",
-    fatherContact: "09987654321",
-    motherName: "Maria Dela Cruz",
-    motherOccupation: "Teacher",
-    motherAge: "48",
-    motherBusinessAddress: "XYZ Elementary School, Davao City",
-    motherContact: "09876543210",
-    // Guardian information
-    guardianName: "Roberto Santos",
-    guardianHomeAddress: "456 Oak Street, Davao City",
-    guardianContact: "09555666777",
-    guardianBusinessAddress: "Santos Hardware Store",
-    stayedBefore: "No",
-    previousLocation: "N/A",
-    lengthOfStay: "N/A",
-    // Signatures (all signed)
-    studentSignature_applicationForm: "SIGNED",
-    instruction_1: "Every weekend",
-    instruction_2: "Only for emergencies",
-    instruction_3: true,
-    instruction_4: false,
-    instruction_5: true,
-    instruction_6: true,
-    instruction_7: false,
-    instruction_8: "None",
-    additionalInstructions: "Please notify parents for any medical emergencies.",
-    infoParentName: "SIGNED",
-    // Guardian information
-    guardian1_fullName: "Roberto Santos",
-    guardian1_relationship: "Uncle",
-    guardian1_address: "456 Oak Street, Davao City",
-    guardian1_contact: "09555666777",
-    guardian2_fullName: "Elena Martinez",
-    guardian2_relationship: "Aunt",
-    guardian2_address: "789 Pine Street, Davao City",
-    guardian2_contact: "09444555666",
-    designatedGuardians_parentSignature: "SIGNED",
-    designatedGuardians_studentSignature: "SIGNED",
-    // Appliances
-    applianceQty_0: "1", // Laptop
-    applianceBrand_0: "Dell",
-    applianceSerial_0: "DL123456",
-    applianceQty_3: "1", // Cellular Phone
-    applianceBrand_3: "Samsung",
-    applianceSerial_3: "SM789012",
-    applianceDeclaration_parentSignature: "SIGNED",
-    applianceDeclaration_studentSignature: "SIGNED",
-    // Agreement information
-    residentName: "Juan Carlos Dela Cruz",
-    residentAddress: "123 Main Street, Davao City",
-    agreementResidentNameInline: "Juan Carlos Dela Cruz",
-    agreementResidentAddressInline: "123 Main Street, Davao City",
-    agreementResidentSign: "SIGNED",
-    agreementParentSign: "SIGNED",
-    privacyNameSign: "SIGNED",
-    accommodationFrom: "2025-06-01",
-    accommodationUntil: "2025-12-15",
-    signatureResident_dormAgreement: "SIGNED",
-    signatureParent_dormAgreement: "SIGNED"
-  };
+  const [studentData, setStudentData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const applianceLabels = [
     'Laptop / Tablet / Desktop', 'Printer / Scanner', 'Electric Fan', 'Cellular Phone',
     'Study Lamp', 'iPod / PSP', 'Chargeable Flashlight', 'Powerbank', 'Pocket Wifi',
     'Camera', 'Nebulizer',
   ];
+
+  useEffect(() => {
+    if (isOpen && studentNumber) {
+      fetchStudentData();
+    }
+  }, [isOpen, studentNumber]);
+
+  const fetchStudentData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch basic student info
+      const { data: studentInfo, error: studentError } = await supabase
+        .from('Students')
+        .select('*')
+        .eq('studentNumber', studentNumber)
+        .single();
+
+      if (studentError) throw studentError;
+
+      // Fetch application data
+      const { data: applicationData, error: applicationError } = await supabase
+        .from('Application_for_Dorm_Accomodation')
+        .select('*')
+        .eq('studentNumber', studentNumber)
+        .single();
+
+      // Fetch instruction sheet data
+      const { data: instructionData, error: instructionError } = await supabase
+        .from('Information_and_Instruction_Sheet')
+        .select('*')
+        .eq('studentNumber', studentNumber)
+        .single();
+
+      // Fetch designated guardians
+      const { data: guardians, error: guardiansError } = await supabase
+        .from('Designated_Guardians')
+        .select('*')
+        .eq('studentNumber', studentNumber);
+
+      // Fetch guardian information (parents)
+      const { data: guardianInfo, error: guardianInfoError } = await supabase
+        .from('guardianInformation')
+        .select('*')
+        .eq('studentNumber', studentNumber);
+
+      // Debug log to see what guardian types we have
+      console.log('Guardian Info:', guardianInfo);
+      if (guardianInfo) {
+        console.log('Guardian Types found:', guardianInfo.map(g => g.guardianType));
+      }
+
+      // Fetch appliances
+      const { data: appliances, error: appliancesError } = await supabase
+        .from('appliance_per_student')
+        .select(`
+          *,
+          list_of_appliances(applianceName)
+        `)
+        .eq('studentNumber', studentNumber)
+        .eq('isActive', true);
+
+      // Fetch acknowledgement of accountability form
+      const { data: accountabilityData, error: accountabilityError } = await supabase
+        .from('Acknowledgemet_of_Accountability_Form')
+        .select('*')
+        .eq('studentNumber', studentNumber)
+        .eq('isArchived', false)
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      // Process and combine all data
+      const combinedData = {
+        // Basic student info
+        studentNumber: studentInfo?.studentNumber || '',
+        studentName: studentInfo?.studentName || applicationData?.studentName || '',
+        
+        // Application data
+        sex: applicationData?.Sex || '',
+        age: applicationData?.Age?.toString() || '',
+        course: applicationData?.Course || '',
+        yearLevel: applicationData?.yearLevel?.toString() || '',
+        dateOfBirth: applicationData?.dateOfBirth || '',
+        placeOfBirth: applicationData?.placeOfBirth || '',
+        religion: applicationData?.religion || '',
+        civilStatus: applicationData?.civilStatus || '',
+        nationality: applicationData?.nationality || '',
+        emailAddress: applicationData?.emailAddress || '',
+        homeAddress: applicationData?.homeAddress || '',
+        contactNo: applicationData?.contactNo || '',
+        isStayedInAnyDormitory: applicationData?.isStayedInAnyDormitory ? 'Yes' : 'No',
+        lengthOfStay: applicationData?.lengthOfStay || 'N/A',
+        whereStayed: applicationData?.whereStayed || 'N/A',
+        semester: `${applicationData?.semester_of_admissionYear || ''} ${applicationData?.admissionYear || ''}`.trim(),
+        
+        // Guardian information - using case-insensitive matching
+        father: guardianInfo?.find(g => g.guardianType && g.guardianType.toLowerCase().includes('father')),
+        mother: guardianInfo?.find(g => g.guardianType && g.guardianType.toLowerCase().includes('mother')),
+        guardian: guardianInfo?.find(g => g.guardianType && (
+          g.guardianType.toLowerCase().includes('guardian') ||
+          (!g.guardianType.toLowerCase().includes('father') && !g.guardianType.toLowerCase().includes('mother'))
+        )),
+        
+        // Instruction sheet data
+        instruction_1: instructionData?.Allowed_ToGoHomeInWeekends || 'Not specified',
+        instruction_2: instructionData?.Allowed_ToGoHomeInWeekdays || 'Not specified',
+        instruction_3: instructionData?.isAllowed_WeekendsWithRelatives_or_guardians || false,
+        instruction_4: instructionData?.isAllowed_spendOvernightWithFriends_or_dormmates || false,
+        instruction_5: instructionData?.isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions || false,
+        instruction_6: instructionData?.isAllowed_joinOrganizations || false,
+        instruction_7: instructionData?.isAllowed_joinDemonstrations_or_rallies || false,
+        instruction_8: instructionData?.whatIllnesses || 'None',
+        additionalInstructions: instructionData?.otherAdditionalInstruction || 'None',
+        
+        // Designated guardians
+        designatedGuardians: guardians || [],
+        
+        // Appliances
+        appliances: appliances || [],
+        
+        // Accountability form data
+        accountabilityForm: accountabilityData && accountabilityData.length > 0 ? accountabilityData[0] : null
+      };
+
+      setStudentData(combinedData);
+    } catch (err) {
+      console.error('Error fetching student data:', err);
+      setError('Failed to load student information. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Loading student information...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="text-red-600 text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="space-x-4">
+              <button 
+                onClick={fetchStudentData}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Retry
+              </button>
+              <button 
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!studentData) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">No Data Found</h3>
+            <p className="text-gray-600 mb-4">No information found for student number: {studentNumber}</p>
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 text-black">
@@ -108,31 +225,46 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
         {/* Modal Content */}
         <div className="p-6 space-y-6">
           {/* Status Banner */}
-          <div className="bg-green-100 p-4 rounded border border-green-300">
-            <p className="text-sm text-green-900">
-              <strong>STATUS:</strong> All forms have been completed and signed. Application is ready for processing.
+          <div className="bg-blue-100 p-4 rounded border border-blue-300">
+            <p className="text-sm text-blue-900">
+              <strong>Student Information:</strong> Data retrieved from database for {studentData.studentName || 'Unknown Student'}
             </p>
+            {/* Debug information - remove this in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-blue-700">Debug Info (Development Only)</summary>
+                <div className="mt-2 text-xs bg-gray-100 p-2 rounded">
+                  <p><strong>Father found:</strong> {studentData.father ? 'Yes' : 'No'}</p>
+                  <p><strong>Mother found:</strong> {studentData.mother ? 'Yes' : 'No'}</p>
+                  <p><strong>Guardian found:</strong> {studentData.guardian ? 'Yes' : 'No'}</p>
+                  {studentData.father && <p><strong>Father Name:</strong> {studentData.father.Name}</p>}
+                  {studentData.mother && <p><strong>Mother Name:</strong> {studentData.mother.Name}</p>}
+                  {studentData.guardian && <p><strong>Guardian Name:</strong> {studentData.guardian.Name}</p>}
+                  <p><strong>Accountability Form:</strong> {studentData.accountabilityForm ? 'Found' : 'Not found'}</p>
+                </div>
+              </details>
+            )}
           </div>
 
           {/* Page 1: Student Application & Parent/Guardian Authorization */}
           <fieldset className="border p-4 rounded bg-gray-50">
             <legend className="font-semibold text-lg">Page 1: Dormitory Application</legend>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              <div><label className="block text-sm font-medium">Semester</label><div className="p-2 bg-white border rounded">{studentData.semester}</div></div>
-              <div><label className="block text-sm font-medium">Full Name</label><div className="p-2 bg-white border rounded">{studentData.name}</div></div>
-              <div><label className="block text-sm font-medium">Sex</label><div className="p-2 bg-white border rounded">{studentData.sex}</div></div>
-              <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.age}</div></div>
-              <div><label className="block text-sm font-medium">Student ID No.</label><div className="p-2 bg-white border rounded">{studentData.studentId}</div></div>
-              <div><label className="block text-sm font-medium">Course</label><div className="p-2 bg-white border rounded">{studentData.course}</div></div>
-              <div><label className="block text-sm font-medium">Year Level</label><div className="p-2 bg-white border rounded">{studentData.yearLevel}</div></div>
-              <div><label className="block text-sm font-medium">Date of Birth</label><div className="p-2 bg-white border rounded">{studentData.dob}</div></div>
-              <div><label className="block text-sm font-medium">Place of Birth</label><div className="p-2 bg-white border rounded">{studentData.pob}</div></div>
-              <div><label className="block text-sm font-medium">Religion</label><div className="p-2 bg-white border rounded">{studentData.religion}</div></div>
-              <div><label className="block text-sm font-medium">Civil Status</label><div className="p-2 bg-white border rounded">{studentData.civilStatus}</div></div>
-              <div><label className="block text-sm font-medium">Nationality</label><div className="p-2 bg-white border rounded">{studentData.nationality}</div></div>
-              <div><label className="block text-sm font-medium">E-mail Address</label><div className="p-2 bg-white border rounded">{studentData.email}</div></div>
-              <div className="sm:col-span-2"><label className="block text-sm font-medium">Home Address</label><div className="p-2 bg-white border rounded">{studentData.homeAddress}</div></div>
-              <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.contact}</div></div>
+              <div><label className="block text-sm font-medium">Semester</label><div className="p-2 bg-white border rounded">{studentData.semester || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Full Name</label><div className="p-2 bg-white border rounded">{studentData.studentName || 'Not provided'}</div></div>
+              <div><label className="block text-sm font-medium">Sex</label><div className="p-2 bg-white border rounded">{studentData.sex || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.age || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Student ID No.</label><div className="p-2 bg-white border rounded">{studentData.studentNumber}</div></div>
+              <div><label className="block text-sm font-medium">Course</label><div className="p-2 bg-white border rounded">{studentData.course || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Year Level</label><div className="p-2 bg-white border rounded">{studentData.yearLevel || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Date of Birth</label><div className="p-2 bg-white border rounded">{studentData.dateOfBirth || 'Not provided'}</div></div>
+              <div><label className="block text-sm font-medium">Place of Birth</label><div className="p-2 bg-white border rounded">{studentData.placeOfBirth || 'Not provided'}</div></div>
+              <div><label className="block text-sm font-medium">Religion</label><div className="p-2 bg-white border rounded">{studentData.religion || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Civil Status</label><div className="p-2 bg-white border rounded">{studentData.civilStatus || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">Nationality</label><div className="p-2 bg-white border rounded">{studentData.nationality || 'Not specified'}</div></div>
+              <div><label className="block text-sm font-medium">E-mail Address</label><div className="p-2 bg-white border rounded">{studentData.emailAddress || 'Not provided'}</div></div>
+              <div className="sm:col-span-2"><label className="block text-sm font-medium">Home Address</label><div className="p-2 bg-white border rounded">{studentData.homeAddress || 'Not provided'}</div></div>
+              <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.contactNo || 'Not provided'}</div></div>
             </div>
             
             <hr className="my-4" />
@@ -143,41 +275,37 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
               
               {/* Father */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-gray-400 border-2 p-2 rounded-md">
-                <div><label className="block text-sm font-medium">Name of Father</label><div className="p-2 bg-white border rounded">{studentData.fatherName}</div></div>
-                <div><label className="block text-sm font-medium">Occupation</label><div className="p-2 bg-white border rounded">{studentData.fatherOccupation}</div></div>
-                <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.fatherAge}</div></div>
-                <div className="sm:col-span-2"><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.fatherBusinessAddress}</div></div>
-                <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.fatherContact}</div></div>
+                <div><label className="block text-sm font-medium">Name of Father</label><div className="p-2 bg-white border rounded">{studentData.father?.Name || 'Not provided'}</div></div>
+                <div><label className="block text-sm font-medium">Occupation</label><div className="p-2 bg-white border rounded">{studentData.father?.Occupation || 'Not provided'}</div></div>
+                <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.father?.Age || 'Not provided'}</div></div>
+                <div className="sm:col-span-2"><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.father?.businessAddress_or_employmentAddress || 'Not provided'}</div></div>
+                <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.father?.contactNumber || 'Not provided'}</div></div>
               </div>
               
               {/* Mother */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-gray-400 border-2 p-2 rounded-md">
-                <div><label className="block text-sm font-medium">Name of Mother</label><div className="p-2 bg-white border rounded">{studentData.motherName}</div></div>
-                <div><label className="block text-sm font-medium">Occupation</label><div className="p-2 bg-white border rounded">{studentData.motherOccupation}</div></div>
-                <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.motherAge}</div></div>
-                <div className="sm:col-span-2"><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.motherBusinessAddress}</div></div>
-                <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.motherContact}</div></div>
+                <div><label className="block text-sm font-medium">Name of Mother</label><div className="p-2 bg-white border rounded">{studentData.mother?.Name || 'Not provided'}</div></div>
+                <div><label className="block text-sm font-medium">Occupation</label><div className="p-2 bg-white border rounded">{studentData.mother?.Occupation || 'Not provided'}</div></div>
+                <div><label className="block text-sm font-medium">Age</label><div className="p-2 bg-white border rounded">{studentData.mother?.Age || 'Not provided'}</div></div>
+                <div className="sm:col-span-2"><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.mother?.businessAddress_or_employmentAddress || 'Not provided'}</div></div>
+                <div className="sm:col-span-2"><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.mother?.contactNumber || 'Not provided'}</div></div>
               </div>
               
               {/* Guardian in Davao */}
-              <div className="space-y-4 border-gray-400 border-2 p-2 rounded-md">
-                <h5 className="font-medium">Guardian in Davao City</h5>
-                <div><label className="block text-sm font-medium">Name</label><div className="p-2 bg-white border rounded">{studentData.guardianName}</div></div>
-                <div><label className="block text-sm font-medium">Home Address</label><div className="p-2 bg-white border rounded">{studentData.guardianHomeAddress}</div></div>
-                <div><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.guardianContact}</div></div>
-                <div><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.guardianBusinessAddress}</div></div>
-              </div>
+              {studentData.guardian && (
+                <div className="space-y-4 border-gray-400 border-2 p-2 rounded-md">
+                  <h5 className="font-medium">Guardian in Davao City</h5>
+                  <div><label className="block text-sm font-medium">Name</label><div className="p-2 bg-white border rounded">{studentData.guardian.Name}</div></div>
+                  <div><label className="block text-sm font-medium">Business Address</label><div className="p-2 bg-white border rounded">{studentData.guardian.businessAddress_or_employmentAddress || 'Not provided'}</div></div>
+                  <div><label className="block text-sm font-medium">Contact No.</label><div className="p-2 bg-white border rounded">{studentData.guardian.contactNumber || 'Not provided'}</div></div>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <h5 className="font-medium">Previous Dormitory Experience</h5>
-                <div><label className="block text-sm font-medium">Stayed in dormitory before?</label><div className="p-2 bg-white border rounded">{studentData.stayedBefore}</div></div>
+                <div><label className="block text-sm font-medium">Stayed in dormitory before?</label><div className="p-2 bg-white border rounded">{studentData.isStayedInAnyDormitory}</div></div>
                 <div><label className="block text-sm font-medium">Length of Stay</label><div className="p-2 bg-white border rounded">{studentData.lengthOfStay}</div></div>
-                <div><label className="block text-sm font-medium">Where?</label><div className="p-2 bg-white border rounded">{studentData.previousLocation}</div></div>
-              </div>
-              
-              <div className="mt-4">
-                <label className="block text-sm font-medium">Student Signature (Application Form)</label>
-                <div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.studentSignature_applicationForm}</div>
+                <div><label className="block text-sm font-medium">Where?</label><div className="p-2 bg-white border rounded">{studentData.whereStayed}</div></div>
               </div>
             </div>
           </fieldset>
@@ -215,11 +343,6 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
               
               <div><label className="block text-sm font-medium">8. Illnesses we must know</label><div className="p-2 bg-white border rounded">{studentData.instruction_8}</div></div>
               <div><label className="block text-sm font-medium">Additional Instructions</label><div className="p-2 bg-white border rounded">{studentData.additionalInstructions}</div></div>
-              
-              <div className="mt-4">
-                <label className="block text-sm font-medium">Parent's Signature</label>
-                <div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.infoParentName}</div>
-              </div>
             </div>
           </fieldset>
 
@@ -227,21 +350,23 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
           <fieldset className="border p-4 rounded bg-gray-50">
             <legend className="font-semibold">Designated Guardian(s) in Davao City</legend>
             <div className="space-y-4 mt-4">
-              {[1, 2].map((n) => (
-                <div key={n} className="border p-3 rounded">
-                  <h4 className="font-medium mb-3">Guardian No. {n}</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium">Full Name</label><div className="p-2 bg-white border rounded">{studentData[`guardian${n}_fullName`] || 'N/A'}</div></div>
-                    <div><label className="block text-sm font-medium">Relationship</label><div className="p-2 bg-white border rounded">{studentData[`guardian${n}_relationship`] || 'N/A'}</div></div>
-                    <div className="sm:col-span-2"><label className="block text-sm font-medium">Address</label><div className="p-2 bg-white border rounded">{studentData[`guardian${n}_address`] || 'N/A'}</div></div>
-                    <div><label className="block text-sm font-medium">Contact</label><div className="p-2 bg-white border rounded">{studentData[`guardian${n}_contact`] || 'N/A'}</div></div>
+              {studentData.designatedGuardians.length > 0 ? (
+                studentData.designatedGuardians.map((guardian, index) => (
+                  <div key={guardian.designatedGuardianID} className="border p-3 rounded">
+                    <h4 className="font-medium mb-3">Guardian No. {index + 1}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div><label className="block text-sm font-medium">Full Name</label><div className="p-2 bg-white border rounded">{guardian.fullName_of_Guardian || 'N/A'}</div></div>
+                      <div><label className="block text-sm font-medium">Relationship</label><div className="p-2 bg-white border rounded">{guardian.relationshipToResident || 'N/A'}</div></div>
+                      <div className="sm:col-span-2"><label className="block text-sm font-medium">Address</label><div className="p-2 bg-white border rounded">{guardian.completeAddress || 'N/A'}</div></div>
+                      <div><label className="block text-sm font-medium">Contact</label><div className="p-2 bg-white border rounded">{guardian.contactNumber || 'N/A'}</div></div>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No designated guardians found
                 </div>
-              ))}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div><label className="block text-sm font-medium">Parent's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.designatedGuardians_parentSignature}</div></div>
-                <div><label className="block text-sm font-medium">Student's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.designatedGuardians_studentSignature}</div></div>
-              </div>
+              )}
             </div>
           </fieldset>
 
@@ -252,82 +377,91 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
               <div className="grid grid-cols-4 gap-2 mb-2 font-medium text-sm">
                 <span>Appliance</span><span>Quantity</span><span>Brand</span><span>Serial No.</span>
               </div>
-              {applianceLabels.map((label, i) => {
-                const qty = studentData[`applianceQty_${i}`];
-                const brand = studentData[`applianceBrand_${i}`];
-                const serial = studentData[`applianceSerial_${i}`];
-                
-                if (!qty) return null;
-                
-                return (
-                  <div key={i} className="grid grid-cols-4 gap-2 mb-2 text-sm">
-                    <div className="p-2 bg-white border rounded">{label}</div>
-                    <div className="p-2 bg-white border rounded">{qty}</div>
-                    <div className="p-2 bg-white border rounded">{brand || 'N/A'}</div>
-                    <div className="p-2 bg-white border rounded">{serial || 'N/A'}</div>
+              {studentData.appliances.length > 0 ? (
+                studentData.appliances.map((appliance, index) => (
+                  <div key={index} className="grid grid-cols-4 gap-2 mb-2 text-sm">
+                    <div className="p-2 bg-white border rounded">{appliance.list_of_appliances?.applianceName || 'Unknown'}</div>
+                    <div className="p-2 bg-white border rounded">{appliance.quantity || 'N/A'}</div>
+                    <div className="p-2 bg-white border rounded">{appliance.brand || 'N/A'}</div>
+                    <div className="p-2 bg-white border rounded">{appliance.serialNo || 'N/A'}</div>
                   </div>
-                );
-              })}
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div><label className="block text-sm font-medium">Parent's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.applianceDeclaration_parentSignature}</div></div>
-                <div><label className="block text-sm font-medium">Student's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.applianceDeclaration_studentSignature}</div></div>
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No appliances declared
+                </div>
+              )}
             </div>
           </fieldset>
 
-          {/* Page 5-6: Dormitory Agreement */}
+          {/* Page 5: Acknowledgement of Accountability Form */}
           <fieldset className="border p-4 rounded bg-gray-50">
-            <legend className="font-semibold">Dormitory Agreement</legend>
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium">Name of Resident</label><div className="p-2 bg-white border rounded">{studentData.residentName}</div></div>
-                <div><label className="block text-sm font-medium">Address</label><div className="p-2 bg-white border rounded">{studentData.residentAddress}</div></div>
-              </div>
-              
-              <div className="p-4 bg-blue-50 rounded border">
-                <p className="text-sm">
-                  Agreement acknowledged and signed by: <strong>{studentData.agreementResidentNameInline}</strong> of <strong>{studentData.agreementResidentAddressInline}</strong>
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium">Student's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.agreementResidentSign}</div></div>
-                <div><label className="block text-sm font-medium">Parent's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.agreementParentSign}</div></div>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* Page 7: Privacy Notice */}
-          <fieldset className="border p-4 rounded bg-gray-50">
-            <legend className="font-semibold">Privacy Notice Acknowledgement</legend>
+            <legend className="font-semibold">Acknowledgement of Accountability Form</legend>
             <div className="mt-4">
-              <p className="text-sm mb-4 p-3 bg-blue-50 rounded">
-                Student acknowledges reading and understanding the University of the Philippines' Privacy Notice for Students and consents to the processing of personal and sensitive personal information.
-              </p>
-              <div><label className="block text-sm font-medium">Student's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.privacyNameSign}</div></div>
-            </div>
-          </fieldset>
-
-          {/* Page 8: Accommodation Agreement */}
-          <fieldset className="border p-4 rounded bg-gray-50">
-            <legend className="font-semibold">Accommodation Agreement</legend>
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium">Accommodation From</label><div className="p-2 bg-white border rounded">{studentData.accommodationFrom}</div></div>
-                <div><label className="block text-sm font-medium">Accommodation Until</label><div className="p-2 bg-white border rounded">{studentData.accommodationUntil}</div></div>
-              </div>
-              
-              <div className="p-4 bg-yellow-50 rounded border">
-                <p className="text-sm">
-                  Student pledges to abide by all dormitory rules, regulations, and University policies during the accommodation period.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium">Student's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.signatureResident_dormAgreement}</div></div>
-                <div><label className="block text-sm font-medium">Parent's Signature</label><div className="p-2 bg-green-100 border rounded text-green-800 font-semibold">{studentData.signatureParent_dormAgreement}</div></div>
-              </div>
+              {studentData.accountabilityForm ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium">Room Number</label>
+                      <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.roomNumber || 'Not assigned'}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Semester</label>
+                      <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.semester || 'Not specified'}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-4">Property Numbers Assigned</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium">Room Key</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.roomKey_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Study Table</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.studyTable_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Jalousies</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.jalousies_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Window</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.window_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Bed Foam</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.bedfoam_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Closet</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.closet_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Closet Door Handle</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.ClosetDoorHandle_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Chair</label>
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm.chair_propertyNumber || 'Not assigned'}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="text-sm text-gray-600">
+                      <strong>Form Created:</strong> {new Date(studentData.accountabilityForm.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">📋</div>
+                  <p className="text-lg font-medium">No Accountability Form Found</p>
+                  <p className="text-sm">This student has not been assigned room properties yet.</p>
+                </div>
+              )}
             </div>
           </fieldset>
         </div>

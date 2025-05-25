@@ -36,6 +36,7 @@ const DormitoryAccommodation = () => {
     }
 
     setParentInfo(parentInfo_temp);
+    console.log("This is the parent info: ", parentInfo_temp);
     setInformation(data[0]);
   }
 
@@ -151,9 +152,9 @@ const DormitoryAccommodation = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-gray-600">Home Address</label>
+                <label className="block mb-1 text-gray-600">Business/Employment Address</label>
                 <div className="border border-gray-300 rounded-md px-2 py-1 w-full bg-gray-50">
-                  {x.homeAddress}
+                  {x.businessAddress_or_employmentAddress}
                 </div>
               </div>
 
