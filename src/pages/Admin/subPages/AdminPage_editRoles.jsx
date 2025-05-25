@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import supabase from '../../../supabase_client';
+import StudentFullInfo from '../../../components/StudentFullInfo';
 
 function AdminPage_editRoles() {
   const [requests, setRequests] = useState([]);
   const [admins, setAdmins]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [selectedStudentNumber, setSelectedStudentNumber] = useState(null);
+  const [isModalOpen_studentInfo, setModalOpen_studentInfo] = useState(false);
+
 
   // Fetch both pending requests and current admins
   useEffect(() => {
@@ -178,6 +182,20 @@ function AdminPage_editRoles() {
               <p>Type: {r.source[0].toUpperCase() + r.source.slice(1)}</p>
               <p>Email: {r.email}</p>
               <div>
+                { r.source === 'student' ? 
+                                <button
+                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
+                  onClick={() => {
+                    setSelectedStudentNumber(r.id);  // <-- save the student number
+                    setModalOpen_studentInfo(true);              // <-- open the modal
+                  }}
+                >
+                  View Info
+                </button>
+                 :
+                 ""
+                 }
+
                 <button
                   className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
                   onClick={() => handleDeny(r.source, r.id)}
@@ -197,6 +215,13 @@ function AdminPage_editRoles() {
           <p className="text-xl">No pending requests</p>
         )}
       </div>
+
+      <StudentFullInfo 
+        isOpen={isModalOpen_studentInfo}
+        onClose={() => setModalOpen_studentInfo(false)}
+        studentNumber={selectedStudentNumber}
+      />
+
 
       {/* Current Admins */}
       <div className="mx-2 mt-5 p-2 border-2 border-black rounded-2xl flex flex-col gap-2 text-black zain-regular">

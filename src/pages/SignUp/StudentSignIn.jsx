@@ -82,6 +82,7 @@ const [formData, setFormData] = useState({});
     .insert([{
       'userID': session.user.id,
       'studentNumber': formData.studentId,
+      'studentName' : formData.name,
     }]);
 
     if(insertionError){

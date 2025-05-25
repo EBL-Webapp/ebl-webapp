@@ -80,17 +80,18 @@ export default function EditPayments() {
       return;
     }
 
-    studentNumberFocus.surplus_deficit_payment = newBalance;
+    setStudentNumberFocus(prev => ({
+      ...prev,
+      surplus_deficit_payment: newBalance
+    }));
+
 
     set_searched_list(prev =>
       prev.map((each) =>
         each.studentNumber === studentNumberFocus.studentNumber
           ? {
               ...each,
-              Students: {
-                ...each.Students,
-                surplus_deficit_payment: newBalance,
-              },
+              surplus_deficit_payment: newBalance,
             }
           : each
       )
@@ -101,14 +102,12 @@ export default function EditPayments() {
         each.studentNumber === studentNumberFocus.studentNumber
           ? {
               ...each,
-              Students: {
-                ...each.Students,
-                surplus_deficit_payment: newBalance,
-              },
+              surplus_deficit_payment: newBalance,
             }
           : each
       )
-    );
+);
+
 
 
 
@@ -317,22 +316,23 @@ export default function EditPayments() {
 
   const getStudents = async () => {
     const { data, error } = await supabase
-      .from("Application_for_Dorm_Accomodation")
-      .select("studentNumber, studentName, Students ( surplus_deficit_payment, isArchived )")
-      .eq("Students.isArchived", false);
+      .from("Students")
+      .select("studentNumber, studentName, surplus_deficit_payment, isArchived")
+      .eq("isArchived", false);
 
     if (error) {
-      console.error("Error fetching data:", error);
-    } else {
-      const sortedData = data.sort((a, b) => {
-        return (a.Students.surplus_deficit_payment || 0) - (b.Students.surplus_deficit_payment || 0);
-      });
-
-      // Now use sortedData instead of data
-      set_searched_list(sortedData);
-      set_students_list(sortedData);
+      console.error("Error fetching students:", error.message);
+      return;
     }
-  }
+    console.log("This is the data: ", data);
+    // sort by balance
+    const sorted = data.sort(
+      (a, b) => (a.surplus_deficit_payment || 0) - (b.surplus_deficit_payment || 0)
+    );
+
+    set_searched_list(sorted);
+    set_students_list(sorted);
+  };
 
 
   const getAdminInfo = async () => {
@@ -415,14 +415,14 @@ export default function EditPayments() {
                 <td className="px-4 py-3">{x.studentNumber}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-block w-18 sm:w-24 text-center px-3 py-1 rounded-2xl border border-green-600   ${x.Students.surplus_deficit_payment >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-500 text-black'} `}
+                    className={`inline-block w-18 sm:w-24 text-center px-3 py-1 rounded-2xl border border-green-600   ${x.surplus_deficit_payment >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-500 text-black'} `}
                   >
-                    {x.Students.surplus_deficit_payment >= 0 ? "PAID" : `UNPAID (${x.Students.surplus_deficit_payment}) `}
+                    {x.surplus_deficit_payment >= 0 ? "PAID" : `UNPAID (${x.surplus_deficit_payment}) `}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button
-                    onClick={() => handleOpenModal(x.studentNumber, x.Students.surplus_deficit_payment, x.studentName)}
+                    onClick={() => handleOpenModal(x.studentNumber, x.surplus_deficit_payment, x.studentName)}
                     className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900"
                   >
                     Edit Payment

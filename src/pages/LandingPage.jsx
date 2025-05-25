@@ -177,9 +177,9 @@ const LandingPage = () => {
             </div>
 
             {/* Call to Action Button */}
-            <button className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
+            {/* <button className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
               Just Visiting? Check the Transient Rates!
-            </button>
+            </button> */}
           </section>
         </div>
       </main>
