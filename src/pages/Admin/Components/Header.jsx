@@ -83,8 +83,9 @@ function Header() {
             <Link to="/admin/editOffenses" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Edit Offenses</Link><hr/>
             <Link to="/admin/studentsArchive" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Archive</Link><hr/>
             <Link to="/admin/studentsPayments" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Student Payments</Link><hr/>
-            <Link to="/admin/transientRequests" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Transient Requests</Link> <hr/>
-            <Link to="/admin/editRoles" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Edit Roles</Link>
+            {/* <Link to="/admin/transientRequests" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Transient Requests</Link> <hr/> */}
+            <Link to="/admin/editRoles" className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Edit Roles</Link> <hr/>
+            <Link to='/admin/studentsList' className="hover:bg-gray-200 p-2 rounded transition-all duration-200">Students List</Link>
           </ul>
         </div>
       </div>

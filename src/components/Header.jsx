@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, Menu } from "lucide-react";
 import upLogo from "@/assets/up-mindanao-logo.png";
 import supabase from "../supabase_client";
+import { fetchColumnValue } from "../fetchColumnValue";
+
 
 export default function Header({ 
   variant = "landing", 
@@ -22,6 +24,19 @@ export default function Header({
 
     navigate('/')
   } 
+
+  const load_studNum = async () => {
+
+    const {data : session, error : error_session} = await supabase.auth.getSession();
+    if(error_session){
+      console.log("There was an error in getting the session: ", error_session.message);
+      return;
+    }
+
+    const temp = await fetchColumnValue("Students", "userID", session.session.user.id, "studentNumber");
+
+    setStudentNumber(temp);
+  }
   const [showMenu, setShowMenu] = useState(false);
   const toggleMenu = () => setShowMenu(!showMenu);
 
@@ -32,6 +47,8 @@ export default function Header({
   const [showContacts, setShowContacts] = useState(false);
   const [accountLogo, setAccountLogo] = useState("/pfp.png");
   const [userName, setUserName] = useState("Student User");
+  const [studentNumber, setStudentNumber] = useState("");
+  
 
   useEffect(() => {
     // We want to show the image of the account user
@@ -51,6 +68,7 @@ export default function Header({
     };
 
     logoLoad();
+    load_studNum();
   }, [])
 
 
@@ -90,7 +108,7 @@ export default function Header({
                 setShowServices(prev => !prev);
                 setShowContacts(false); // optional: closes Services if it's open
               }} 
-              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
+              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
             >
               Services <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showServices ? 'rotate-180' : ''}`} />
             </button>
@@ -115,7 +133,7 @@ export default function Header({
                 setShowContacts(prev => !prev);
                 setShowServices(false); // optional: closes Services if it's open
               }} 
-              className="flex items-center hover:text-[#114516] !bg-transparent !border-none px-4 py-1 rounded-md"
+              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
             >
               Contacts <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showContacts ? 'rotate-180' : ''}`} />
             </button>
@@ -142,7 +160,7 @@ export default function Header({
               />
               <div className="text-sm text-white">
                 <p className="font-medium">{userName}</p>
-                <p>{userId}</p>
+                <p>{studentNumber}</p>
               </div>
               <button 
                 onClick={onLogout} 

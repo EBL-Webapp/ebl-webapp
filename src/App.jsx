@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
-import supabase from "./supabase_client";
 
 // Landing Pages
 import LandingPage from "./pages/LandingPage";
@@ -23,6 +22,7 @@ import AdminPage_studentsArchive from "./pages/Admin/subPages/AdminPage_students
 import AdminPage_studentsPayments from "./pages/Admin/subPages/AdminPage_studentsPayments";
 import AdminPage_transientRequests from "./pages/Admin/subPages/AdminPage_transientRequests";
 import AdminPage_editRoles from "./pages/Admin/subPages/AdminPage_editRoles";
+import AdminPage_studentsList from "./pages/Admin/subPages/AdminPage_studentsList";
 
 // SignUp Pages
 import NoUpdate from "./pages/SignUp/NoUpdate";
@@ -54,6 +54,7 @@ function App() {
           <Route path="studentsPayments" element={<AdminPage_studentsPayments />} />
           <Route path="transientRequests" element={<AdminPage_transientRequests />} />
           <Route path="editRoles" element={<AdminPage_editRoles/>} />
+          <Route path="studentsList" element={<AdminPage_studentsList />} />
         </Route>
 
         {/* For Sign UP */}

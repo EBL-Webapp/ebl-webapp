@@ -1,14 +1,44 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, UserRound, Lock, Home, Clipboard, Book } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import supabase from '../../../../supabase_client';
+import { fetchColumnValue } from "../../../../fetchColumnValue";
+import { getSession } from "../../../../getSession";
 
 export default function VerticalNavbar() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
   const toggleSidebar = () => setIsOpen(!isOpen);
+  const [info, setInfo] = useState({});
+
+  const loadInfo = async () => {
+    const session_temp = await getSession();
+
+    const partialInfo = {
+      accLogo : session_temp.session.user.user_metadata.avatar_url,
+    }
+    ;
+
+    console.log("Session: ", session_temp);
+
+    // Now we get the name
+    const studentNumber_temp = await fetchColumnValue("Students", "userID", session_temp.session.user.id, "studentNumber");
+    const {data, error} = await supabase.from("Application_for_Dorm_Accomodation").select("studentName, Course").eq("studentNumber", studentNumber_temp);
+
+    if(error){
+      console.log("Error in retrieving the name: ", error.message);
+      return;
+    }
+
+    setInfo({
+      ...partialInfo, 
+      studentName : data[0] ? data[0].studentName : null,
+      Course : data[0] ? data[0].Course : null,
+    })
+  }
 
   useEffect(() => {
+    loadInfo();
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth >= 768) {
@@ -21,7 +51,6 @@ export default function VerticalNavbar() {
   }, []);
 
   const navLinks = [
-    { label: "Data Privacy", icon: Lock, href: "#data-privacy" },
     { label: "Accommodation", icon: Clipboard, href: "#dorm-accommodation" },
     { label: "Acknowledgement", icon: Book, href: "#acknowledgement" },
   ];
@@ -55,12 +84,12 @@ export default function VerticalNavbar() {
         } md:opacity-100 md:p-6`}
       >
         <img
-          src="https://ui-avatars.com/api/?name=Juan+Dela+Cruz"
+          src={info.accLogo}
           alt="Profile"
           className="rounded-full w-16 h-16 mb-4 border border-[#114516] mt-0 sm:mt-6"
         />
-        <p className="font-semibold text-sm sm:text-base">Juan Dela Cruz</p>
-        <p className="text-xs sm:text-sm">Year | Course</p>
+        <p className="font-semibold text-sm sm:text-base">{info.studentName}</p>
+        <p className="text-xs sm:text-sm">{info.Course}</p>
         <p className="text-xs sm:text-sm">Hello</p>
       </div>
 
