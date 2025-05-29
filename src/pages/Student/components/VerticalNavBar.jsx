@@ -101,7 +101,6 @@ export default function VerticalNavbar() {
           className="rounded-full w-16 h-16 mb-4 border border-[#114516] mt-0 sm:mt-6"
         />
         <p className="font-semibold text-sm sm:text-base">{userName}</p>
-        <p className="text-xs sm:text-sm">Year | Course</p>
         <p className="text-xs sm:text-sm">{studentNumber}</p>
       </div>
 
