@@ -22,9 +22,8 @@ function AdminPage_editOffenses() {
   const [addOffenseStatus, setAddOffenseStatus] = useState({ loading: false, success: false, error: null });
   const [addOffenseTypeStatus, setAddOffenseTypeStatus] = useState({ loading: false, success: false, error: null });
 
-  // Search states
-  const [searchByNameValue, setSearchByNameValue] = useState('');
-  const [searchByStudentNumberValue, setSearchByStudentNumberValue] = useState('');
+  // Search state - combined search
+  const [searchValue, setSearchValue] = useState('');
 
   // New offense type form state
   const [newOffenseType, setNewOffenseType] = useState({ offenseName: '', offenseSeverity: '' });
@@ -42,18 +41,48 @@ function AdminPage_editOffenses() {
     get_admin();
   }, []);
 
+  // Real-time search effect
+  useEffect(() => {
+    if (searchValue.trim() === '') {
+      setFilteredStudents(studentsRecords);
+    } else {
+      const filtered = studentsRecords.filter(student => 
+        student.studentName?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        student.studentNumber?.includes(searchValue)
+      );
+      setFilteredStudents(filtered);
+    }
+  }, [searchValue, studentsRecords]);
+
   // Fetch functions
   const display_records = async () => {
     const { data, error } = await supabase
-      .from('Application_for_Dorm_Accomodation')
-      .select('studentName, studentNumber');
+      .from('Students')
+      .select(`
+        *,
+        Application_for_Dorm_Accomodation (
+          studentName,
+          studentNumber
+        )
+      `)
+      .eq("isArchived", false);
+
     if (error) {
       console.error("Error fetching student records:", error.message);
       return;
     }
-    setStudentsRecords(data);
-    setFilteredStudents(data);
+
+    // Optional: flatten the data to match what frontend expects
+    const flattenedData = data.map(record => ({
+      ...record,
+      ...record.Application_for_Dorm_Accomodation
+    }));
+
+    console.log("List of students: ", flattenedData);
+    setStudentsRecords(flattenedData);
+    setFilteredStudents(flattenedData);
   };
+
 
   const get_offenses = async () => {
     const { data, error } = await supabase
@@ -84,23 +113,9 @@ function AdminPage_editOffenses() {
     setAdminInfo(data);
   };
 
-  // Search handlers
-  const searchByName = e => {
-    e.preventDefault();
-    setFilteredStudents(
-      searchByNameValue.trim()
-        ? studentsRecords.filter(s => s.studentName.toLowerCase().includes(searchByNameValue.toLowerCase()))
-        : studentsRecords
-    );
-  };
-
-  const searchByStudentNumber = e => {
-    e.preventDefault();
-    setFilteredStudents(
-      searchByStudentNumberValue.trim()
-        ? studentsRecords.filter(s => s.studentNumber.includes(searchByStudentNumberValue))
-        : studentsRecords
-    );
+  // Search handler - now just updates the search value
+  const handleSearchChange = (e) => {
+    setSearchValue(e.target.value);
   };
 
   // Modal toggles
@@ -476,35 +491,23 @@ function AdminPage_editOffenses() {
           </div>
         )}
 
-        {/* Search Part */}
+        {/* Search and Action Buttons Section */}
         <div className='flex justify-center gap-3 zain-regular text-black max-md:my-5 max-md:mx-10 max-sm:flex-col'>
-          <div>
-            <form onSubmit={searchByName} className='max-md:flex max-md:flex-col'>
-              <input
-                type='text'
-                placeholder='Search by Name:'
-                value={searchByNameValue}
-                onChange={e => setSearchByNameValue(e.target.value)}
-                className='py-2 px-4 rounded-2xl border-2'
-              />
-              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black'>Search</button>
-            </form>
+          {/* Combined Search Field */}
+          <div className='flex-grow max-w-md'>
+            <input
+              type='text'
+              placeholder='Search by name or student number...'
+              value={searchValue}
+              onChange={handleSearchChange}
+              className='py-2 px-4 rounded-2xl border-2 w-full'
+            />
           </div>
-          <div>
-            <form onSubmit={searchByStudentNumber} className='max-md:flex max-md:flex-col'>
-              <input
-                type='text'
-                placeholder='Student Number:'
-                value={searchByStudentNumberValue}
-                onChange={e => setSearchByStudentNumberValue(e.target.value)}
-                className='py-2 px-4 rounded-2xl border-2'
-              />
-              <button className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black'>Search</button>
-            </form>
-          </div>
-          <div className='flex justify-around'>
-            <button onClick={addOffenseType} className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black'>Add Offense Type</button>
-            <button onClick={addOffense} className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black'>ADD OFFENSE</button>
+          
+          {/* Action Buttons */}
+          <div className='flex justify-around gap-2'>
+            <button onClick={addOffenseType} className='bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black whitespace-nowrap'>Add Offense Type</button>
+            <button onClick={addOffense} className='bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black whitespace-nowrap'>ADD OFFENSE</button>
           </div>
         </div>
 
