@@ -1,4 +1,4 @@
-import React from 'react';
+import {useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../../supabase_client';
 
@@ -33,11 +33,47 @@ const PickRole = () => {
 
 
       navigate('/NoUpdate')
+    // } else if(role === 'transient') {
+    //   console.log("Pumasok ba? 2")
+    //   const {error : errorAddingTransient} = await supabase
+    //   .from("Transient")
+    //   .insert([{
+    //     "userID" : session.user.id
+    //   }])
+
+    //   if(errorAddingTransient){
+    //     console.log("There was an error in adding in Transient table: ", errorAddingTransient.message);
+    //     return;
+    //   }
+    //   navigate('/transient')
+    //   console.log("Pumasok ba? 2")
     } else {
       navigate('/StudentSignIn')
     }
 
   };
+
+  // const ifTransient = async () => {
+  //   const item = localStorage.getItem('Transient_Sign_Up');
+  //   if (!item) return;
+
+  //   try {
+  //     const parsed_item = JSON.parse(item);
+
+  //     // Make sure it's a non-empty string
+  //     if (typeof parsed_item === 'string' && parsed_item.length > 0) {
+  //       localStorage.removeItem('Transient_Sign_Up');
+  //       handleRoleSelection('transient');
+  //     }
+  //   } catch (e) {
+  //     console.error('Failed to parse localStorage item:', e);
+  //   }
+  // };
+
+
+  // useEffect(() => {
+  //   ifTransient()
+  // }, [])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#3b0000] p-4">

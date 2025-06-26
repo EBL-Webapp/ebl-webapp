@@ -1,17 +1,37 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import roomImage from '/ebl_bg.png';
 import { useRedirect } from '../../redirect';
+import supabase from '../../supabase_client';
 
 const TransientDashboard = () => {
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const redirect = useRedirect();
   useEffect(() => {
-    redirect("transient")
-  }, [redirect])
+    
+    const get_user_data = async () => {
+      const {data , error} = await supabase.auth.getSession()
+      if(error && error.message){
+        console.log("There was an error in getting the info in TransientPage, get_user_data function: ", error.message);
+        return
+      }
+
+      console.log("May data man: ", data)
+
+      if(data != null){
+        setIsLoggedIn(true);
+        console.log("Pasok sa banga")
+      }
+      
+    }
+
+    get_user_data()
+
+  }, [])
 
 
   const navigate = useNavigate();
@@ -19,6 +39,22 @@ const TransientDashboard = () => {
   const handleBookNow = () => {
     navigate('/transient/transient-form');
   };
+
+  const handleSignUp = async () => {
+
+    const transient_json = 'transient-sign-in'
+    localStorage.setItem('Transient_Sign_Up', transient_json)
+
+    const {error} = await supabase.auth.signInWithOAuth({
+      provider : 'google'
+    });
+
+    if (error) {
+      console.log("An error occured in signing-up: ", error.message);
+      alert("An error occured in Google signup: ", error.message);
+    }
+  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -45,8 +81,19 @@ const TransientDashboard = () => {
               </ul>
             </div>
             <div className="border border-[#114516] rounded-xl shadow-md p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-[#114516] mb-2">Your Booking Status</h3>
-              <p className="text-sm sm:text-base text-gray-700">No form submitted</p>
+              {isLoggedIn ? (
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold text-[#114516] mb-2">Your Booking Status</h3>
+                  <p className="text-sm sm:text-base text-gray-700">No form submitted</p>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="zain-regular text-black taxt-md">You have not yet logged in, log in now to book!</h2>
+                  <button onClick={() => handleSignUp()} className="text-black bg-white rounded-xl py-3 px-2 font-sans shadow-md shadow-gray border-1 border-gray-300">
+                    Sign-in with Google
+                  </button>
+                </div>
+              )}
               {/* Optional: dynamically change text based on status */}
             </div>
 

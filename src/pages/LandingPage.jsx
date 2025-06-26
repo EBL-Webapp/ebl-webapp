@@ -103,13 +103,41 @@ const LandingPage = () => {
         "transientID",
       )
       if(transientID){
-        navigate("/Transient/TransientPage");
+        navigate("/transient");
         return;
+      }
+      console.log("transientID found:", transientID);
+
+      try {
+        
+        // Let's check if the user is a signing-in transient
+        const transient_JSON = localStorage.getItem('Transient_Sign_Up')
+        const transient_str = JSON.parse(transient_JSON)
+
+        if(transient_str === 'transient-sign-in'){
+          // Then that means we should allow the user to sign-in as a transient
+          const {error} = await supabase.from('Transient').insert([{
+            userID : session.user.id
+          }])
+
+          localStorage.removeItem('Transient_Sign_Up')
+
+          if(error && error.message){
+            console.log("Error in writing the new transient in landing page: ", error.message)
+            return
+          }
+            navigate('/navigate')
+            return;
+          
+        }
+
+      } catch (err) {
+        console.log("The algorithm has checked that there is no request for this user to be transient: ", err.message)
       }
 
 
 
-      // If the user is has a session and is still in the page that means the user has not picked a role.
+      // If the user has a session and is still in the page that means the user has not picked a role.
       navigate("/PickRole")
 
     };
@@ -177,9 +205,9 @@ const LandingPage = () => {
             </div>
 
             {/* Call to Action Button */}
-            {/* <button className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
+            <button onClick={() => navigate('/transient')} className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
               Just Visiting? Check the Transient Rates!
-            </button> */}
+            </button>
           </section>
         </div>
       </main>
