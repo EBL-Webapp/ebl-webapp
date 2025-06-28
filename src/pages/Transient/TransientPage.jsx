@@ -9,28 +9,54 @@ import supabase from '../../supabase_client';
 const TransientDashboard = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [list_requests, set_list_requests] = useState([]);
 
   const redirect = useRedirect();
-  useEffect(() => {
-    
-    const get_user_data = async () => {
-      const {data , error} = await supabase.auth.getSession()
-      if(error && error.message){
-        console.log("There was an error in getting the info in TransientPage, get_user_data function: ", error.message);
-        return
-      }
 
-      console.log("May data man: ", data)
-
-      if(data != null){
-        setIsLoggedIn(true);
-        console.log("Pasok sa banga")
-      }
-      
+  const get_user_data = async () => {
+    const {data , error} = await supabase.auth.getSession()
+    if(error && error.message){
+      console.log("There was an error in getting the info in TransientPage, get_user_data function: ", error.message);
+      return
     }
 
-    get_user_data()
+    if(data != null){
+      setIsLoggedIn(true);
+      save_user_data_to_localStorage(data)
+      get_requests(data.session.user.id)
+    }
+    
+  }
 
+  const get_requests = async (user_id) => {
+
+    // We should be able to get the transient ID of the user and then save it as transientID in localStorage
+    const {data : transientID, erorr : transientID_error} = await supabase.from("Transient").select("transientID").eq("userID", user_id)
+    if(transientID_error && transientID_error.message){
+      console.log("There was an error in getting the transient ID: ", transientID)
+      return
+    }
+    const stringify_transientID = transientID[0].transientID
+    localStorage.setItem("transientID", stringify_transientID)
+
+    // Now let's get their requests
+    const {data : requests, error : requests_error} = await supabase.from("Transient_Request").select("*").order("timestamp", {ascending: false}).eq("transientID", stringify_transientID)
+    if(requests_error && requests_error.messsage){
+      console.log("There was in error in getting the requests: ", requests_error.message)
+      return
+    }
+    set_list_requests(requests)
+    console.log("Here is the list of requests: ", requests)
+
+  }
+
+  const save_user_data_to_localStorage = async (session_data) => {
+    const data_object = JSON.stringify(session_data)
+    localStorage.setItem("user_session_data", data_object)
+  }
+  useEffect(() => {
+    get_user_data()
+    redirect()
   }, [])
 
 
@@ -84,7 +110,40 @@ const TransientDashboard = () => {
               {isLoggedIn ? (
                 <div>
                   <h3 className="text-base sm:text-lg font-semibold text-[#114516] mb-2">Your Booking Status</h3>
-                  <p className="text-sm sm:text-base text-gray-700">No form submitted</p>
+                  {list_requests.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-300 shadow-sm">
+                      <table className="min-w-full text-sm sm:text-base text-left text-black">
+                        <thead className="bg-gray-100 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-4 py-3 font-medium border-b border-gray-300">Date of Submission</th>
+                            <th className="px-4 py-3 font-medium border-b border-gray-300">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {list_requests.length > 0 ? (
+                            list_requests.map((x, idx) => (
+                              <tr key={idx} className="odd:bg-white even:bg-gray-50 border-b border-gray-200">
+                                <td className="px-4 py-2">
+                                  {x.timestamp ? new Date(x.timestamp).toLocaleString() : '—'}
+                                </td>
+                                <td className="px-4 py-2 capitalize">
+                                  {x.status || 'pending'}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="2" className="px-4 py-3 text-gray-500 italic text-center">
+                                No requests found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm sm:text-base text-gray-700">No form submitted</p>
+                  )}
                 </div>
               ) : (
                 <div>
