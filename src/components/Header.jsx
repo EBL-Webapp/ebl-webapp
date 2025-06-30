@@ -10,7 +10,7 @@ export default function Header({
   variant = "landing", 
   isLoggedIn = false, 
   userId = "", 
-
+  loggedIn_transient = false
 }) {
 
   const navigate = useNavigate();
@@ -48,7 +48,16 @@ export default function Header({
   const [accountLogo, setAccountLogo] = useState("/pfp.png");
   const [userName, setUserName] = useState("Student User");
   const [studentNumber, setStudentNumber] = useState("");
-  
+
+
+  const handleLogOut = async() => {
+    const {error} = await supabase.auth.signOut()
+    if(error && error.message){
+      console.log("There was an error in logging out: ", error.message)
+      return
+    }
+  }
+
 
   useEffect(() => {
     // We want to show the image of the account user
@@ -76,7 +85,7 @@ export default function Header({
     <header className="bg-[#4E0303] shadow-md sticky top-0 z-50 text-black text-sm font-light">
       <div className="max-w-screen-xl mx-auto px-4 py-2 flex justify-between items-center">
         {/* Logo / Title */}
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2" onClick={handleLogOut}>
           <img src={upLogo} alt="Logo" className="h-12 w-12 sm:h-20 sm:w-20" />
           <p className="text-white text-xs sm:text-base">UP Mindanao EBL Dorm</p>
         </Link>
@@ -171,7 +180,7 @@ export default function Header({
               </button>
             </div>
           ) : (
-            !isStudent && (
+            !isStudent && !isTransient &&(
               <Link 
                 to="/login" 
                 className="text-white bg-[#114516] hover:bg-green-800 px-4 py-2 rounded-full text-sm"
