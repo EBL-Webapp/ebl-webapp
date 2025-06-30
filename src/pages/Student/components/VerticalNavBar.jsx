@@ -23,17 +23,16 @@ export default function VerticalNavbar() {
     };
 
     const logoLoad = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.log("Error fetching session:", error.message);
-      }
-
+      const Session_OBJ = localStorage.getItem('Session')
+      const session = JSON.parse(Session_OBJ)
+      console.log("This is the profile pic: ", session.session)
       if (session) {
         // This is for the Logo
-        setAccountLogo(session.user.user_metadata.avatar_url);
-        console.log("User is logged in:", session.user);
+        
+        setAccountLogo(session.session.user.user_metadata.avatar_url);
+        console.log("User is logged in:", session.session.user);
 
-        setUserName(session.user.user_metadata.full_name);
+        setUserName(session.session.user.user_metadata.full_name);
       }
     };
 

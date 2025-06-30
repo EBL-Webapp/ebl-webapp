@@ -7,8 +7,30 @@ import VerticalNavbar from "./components/VerticalNavBar";
 import Footer from '@/components/Footer';
 import { useRedirect } from "../../redirect";
 import { useEffect } from "react";
+import supabase from "../../supabase_client";
 
 const StudentPage = () => {
+
+  const getInfo = async() => {
+    // Get Students Table
+    const studentNumber = localStorage.getItem('studentNumber')
+    const {data : Students_data, error : error_Students_data} = await supabase.from('Students').select('*').eq('studentNumber', studentNumber)
+    if(error_Students_data && error_Students_data.message){
+      console.log("Error in getting data in Students table: ", Students_data)
+      return
+    }
+    const Students_STRING = JSON.stringify(Students_data)
+    localStorage.setItem('Students', Students_STRING)
+
+    // Get session
+    const {data : session_data, error : error_session} = await supabase.auth.getSession()
+    if(error_session && error_session.message){
+      console.log("There was an error in getting a session: ", error_session.message)
+      return
+    }
+    const Session_STRING = JSON.stringify(session_data)
+    localStorage.setItem('Session', Session_STRING)
+  }
 
   const redirect = useRedirect();
   useEffect(() => {
@@ -17,6 +39,7 @@ const StudentPage = () => {
     };
 
     runRedirect();
+    getInfo();
   }, [redirect])
 
   return (

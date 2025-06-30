@@ -17,6 +17,7 @@ const LandingPage = () => {
   useEffect(() => {
 
     const checkUserSessionAndRole = async () => {
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('User is logged in:', session.user);
@@ -49,7 +50,7 @@ const LandingPage = () => {
           console.log("There's an error in retrieving if accepted student or not:", isAccepted_error.message);
         }
         if(isAccepted[0].isAssessed === true){
-          localStorage.setItem("studentNumber", studentNumber[0].studentNumber)
+          localStorage.setItem("studentNumber", studentNumber)
           navigate('/Student/StudentPage');
           return;
         } else {
@@ -104,6 +105,7 @@ const LandingPage = () => {
         "transientID",
       )
       if(transientID){
+        localStorage.setItem("transientID", transientID)
         navigate("/transient");
         return;
       }
@@ -113,8 +115,6 @@ const LandingPage = () => {
         
         // Let's check if the user is a signing-in transient
         const transient_str = localStorage.getItem('Transient_Sign_Up')
-
-        console.log("Natry")
         if(transient_str === 'transient-sign-in'){
           console.log("Pumasok ba?")
           // Then that means we should allow the user to sign-in as a transient
@@ -128,9 +128,8 @@ const LandingPage = () => {
             console.log("Error in writing the new transient in landing page: ", error.message)
             return
           }
-            navigate('/navigate')
-            return;
-          
+          navigate('/navigate')
+          return;
         }
 
       } catch (err) {

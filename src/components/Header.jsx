@@ -27,15 +27,9 @@ export default function Header({
 
   const load_studNum = async () => {
 
-    const {data : session, error : error_session} = await supabase.auth.getSession();
-    if(error_session){
-      console.log("There was an error in getting the session: ", error_session.message);
-      return;
-    }
+    const studentNumber = localStorage.getItem('studentNumber')
 
-    const temp = await fetchColumnValue("Students", "userID", session.session.user.id, "studentNumber");
-
-    setStudentNumber(temp);
+    setStudentNumber(studentNumber);
   }
   const [showMenu, setShowMenu] = useState(false);
   const toggleMenu = () => setShowMenu(!showMenu);
@@ -51,10 +45,17 @@ export default function Header({
 
 
   const handleLogOut = async() => {
-    const {error} = await supabase.auth.signOut()
-    if(error && error.message){
-      console.log("There was an error in logging out: ", error.message)
-      return
+    const result = confirm("This will log you out, do you wanna continue?")
+
+    if(result){
+      const {error} = await supabase.auth.signOut()
+      if(error && error.message){
+        console.log("There was an error in logging out: ", error.message)
+        return
+      }
+      localStorage.clear()
+    } else {
+      alert("Logging out aborted")
     }
   }
 
@@ -62,10 +63,9 @@ export default function Header({
   useEffect(() => {
     // We want to show the image of the account user
     const logoLoad = async () => {
-      const {data: { session }, error } = await supabase.auth.getSession();
-      if(error){
-        console.log('Error fetching session:', error.message);
-      }
+      const session_OBJ = localStorage.getItem('Session')
+      const session_STR = JSON.parse(session_OBJ)
+      const session = session_STR.session
 
       if (session) {
         // This is for the Logo

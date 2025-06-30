@@ -48,6 +48,9 @@ const TransientDashboard = () => {
     }
     set_list_requests(requests)
     console.log("Here is the list of requests: ", requests)
+    if(requests && requests.length > 0){
+      localStorage.removeItem('Transient_Sign_Up')
+    }
 
   }
 
