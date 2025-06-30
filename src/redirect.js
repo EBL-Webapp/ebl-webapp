@@ -6,19 +6,25 @@ export function useRedirect() {
   const location = useLocation();
 
   async function redirect(page, id = null) {
-    // ─── 1. Resolve userID ────────────────────────────────
+    // ─── 1. Get session (if id not passed) ─────────────
+    let sessionData;
     if (id === null) {
-      const { data: sessionData, error: sessionErr } =
-        await supabase.auth.getSession();
-      if (sessionErr || !sessionData.session?.user?.id) {
-        // no valid session → stranger
-        await handleUnauthorized();
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session?.user?.id) {
+        if (page !== "visitor") {
+          await handleUnauthorized();
+        }
         return;
       }
-      id = sessionData.session.user.id;
+      sessionData = data;
+      id = data.session.user.id;
     }
 
-    // ─── 2. Figure out actualRole ─────────────────────────
+    // ─── 2. Detect if Google OAuth (email provider) ───
+    const userProvider = sessionData?.session?.user?.app_metadata?.provider;
+    const isGoogleUser = userProvider === "google";
+
+    // ─── 3. Query all roles ─────────────────────────────
     const [ { data: studentRows }, { data: adminRows }, { data: transientRows } ] =
       await Promise.all([
         supabase.from("Students").select("userID").eq("userID", id),
@@ -27,41 +33,38 @@ export function useRedirect() {
       ]);
 
     let actualRole = null;
-    if (studentRows?.length > 0)      actualRole = "student";
-    else if (adminRows?.length > 0)   actualRole = "admin";
+    if (studentRows?.length > 0) actualRole = "student";
+    else if (adminRows?.length > 0) actualRole = "admin";
     else if (transientRows?.length > 0) actualRole = "transient";
+    else if (!isGoogleUser) actualRole = "visitor"; // fallback
 
-    // ─── 3. No matching role? kick them out ────────────────
-    if (!actualRole) {
+    // ─── 4. Kick Google users with no role ──────────────
+    if (!actualRole && isGoogleUser) {
       await handleUnauthorized();
       return;
     }
 
-    // ─── 4. Role → canonical root ──────────────────────────
+    // ─── 5. Allowed routes per role ─────────────────────
     const roots = {
-      student: "/student/*",
-      admin:   "/admin",
+      student: "/student",
+      admin: "/admin",
       transient: "/transient",
+      visitor: "/visitor",
     };
+
     const rootPath = roots[actualRole];
 
-    // a) If they’re in the wrong section entirely
     if (actualRole !== page) {
       navigate(rootPath);
       return;
     }
 
-    // b) If they *are* the right role, but somehow landed outside of that prefix
-    //    e.g. admin hitting "/adminX" or "/foo"
-    if (!location.pathname.startsWith(rootPath.replace("/*", ""))) {
+    if (!location.pathname.startsWith(rootPath)) {
       navigate(rootPath);
       return;
     }
-
-    // else: admin on /admin*, student on /student/*, etc. → do nothing
   }
 
-  // ─── helper for total strangers ─────────────────────────
   async function handleUnauthorized() {
     alert("Unauthorized person…");
     try {

@@ -19,11 +19,12 @@ const TransientDashboard = () => {
       console.log("There was an error in getting the info in TransientPage, get_user_data function: ", error.message);
       return
     }
-
-    if(data != null){
+  
+    if(data?.session?.user){
       setIsLoggedIn(true);
       save_user_data_to_localStorage(data)
       get_requests(data.session.user.id)
+
     }
     
   }
@@ -56,7 +57,7 @@ const TransientDashboard = () => {
   }
   useEffect(() => {
     get_user_data()
-    redirect()
+    redirect('visitor')
   }, [])
 
 
@@ -142,7 +143,7 @@ const TransientDashboard = () => {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-sm sm:text-base text-gray-700">No form submitted</p>
+                    <p className="text-sm sm:text-base text-gray-700">No form submitted {isLoggedIn ? 'true' : 'false'}</p>
                   )}
                 </div>
               ) : (

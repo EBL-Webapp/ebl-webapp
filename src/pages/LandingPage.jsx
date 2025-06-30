@@ -49,6 +49,7 @@ const LandingPage = () => {
           console.log("There's an error in retrieving if accepted student or not:", isAccepted_error.message);
         }
         if(isAccepted[0].isAssessed === true){
+          localStorage.setItem("studentNumber", studentNumber[0].studentNumber)
           navigate('/Student/StudentPage');
           return;
         } else {
@@ -66,7 +67,6 @@ const LandingPage = () => {
         session.user.id,
         "adminID",
       );
-      console.log("the session ced: ", session.user.id);
       console.log('admin ID:', adminID);
       if(adminID){
         // Kailangan din ito icheck if whether accepted admin na ba siya or not.
@@ -85,6 +85,7 @@ const LandingPage = () => {
         console.log("Does it exist?", isItAccepted[0]);
         
         if(isItAccepted && (isItAccepted[0].isAccepted === true)){
+          localStorage.setItem("adminID", adminID[0].adminID)
           navigate('/admin');
           return;
         } else {
@@ -111,10 +112,11 @@ const LandingPage = () => {
       try {
         
         // Let's check if the user is a signing-in transient
-        const transient_JSON = localStorage.getItem('Transient_Sign_Up')
-        const transient_str = JSON.parse(transient_JSON)
+        const transient_str = localStorage.getItem('Transient_Sign_Up')
 
+        console.log("Natry")
         if(transient_str === 'transient-sign-in'){
+          console.log("Pumasok ba?")
           // Then that means we should allow the user to sign-in as a transient
           const {error} = await supabase.from('Transient').insert([{
             userID : session.user.id
