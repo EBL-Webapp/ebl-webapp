@@ -1,252 +1,187 @@
-import React, { useEffect, useState } from 'react';
-import supabase from '../../../supabase_client';
-import StudentFullInfo from '../../../components/StudentFullInfo';
+import {useEffect, useReducer, useState} from 'react'
+import supabase from '../../../supabase_client'
+import Loading from '../../../components/Loading'
+import PaginationControls from '../../../components/PaginationControls'
+import StudentFullInfo from '../../../components/StudentFullInfo'
+
 
 function AdminPage_editRoles() {
-  const [requests, setRequests] = useState([]);
-  const [admins, setAdmins]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [fetchError, setFetchError] = useState(null);
-  const [selectedStudentNumber, setSelectedStudentNumber] = useState(null);
-  const [isModalOpen_studentInfo, setModalOpen_studentInfo] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [load, setLoad] = useState(true);
+  const [rows, setRows] = useState([]);
+  const pageSize = 5;
+  const from = (currentPage - 1) * pageSize;
+  const to = from + pageSize - 1;
 
-  // Fetch both pending requests and current admins
-  useEffect(() => {
-    fetchAllRequests();
-    fetchAdmins();
-  }, []);
+  const handlePageChange = (data) => {
+    setCurrentPage(data)
+  }
 
-  // 1) Fetch pending (isAccepted = false) items
-  const fetchAllRequests = async () => {
-    setLoading(true);
-    setFetchError(null);
+  const retrieve_data = async () => {
+    //Let's retrieve the unapproved students
+    const {data, error, count} = await supabase.from("all_requests_summary").select("*", {count : "exact"}).eq("request_status_boolean", false).range(from, to);
+    if(error && error.message){
+      console.log("There was an error in retrieving the requests: ", error.messsage);
+    }
+    setTotalRows(count);
+    setRows(data);
+    console.log(data);
+    setLoad(false);
+  }
 
-    const [studentsRes, transientsRes, adminsRes] = await Promise.all([
-      supabase
+  const handleAccept = async (id, type) => {
+    //In accepting, there are three types the student, admin and transient
+
+    //Let's update the UI first
+    const new_rows = rows.filter((row) => {
+      return row.original_entity_id !== id;
+    })
+    setRows(new_rows);
+
+    if(type == 'transient'){
+
+      const {error} = await supabase.from('Transient').update({
+        isAccepted : true
+      }).eq("transientID", id);
+      if(error){
+        console.log("There was an error in approving the Transient's role: ", error.message);
+        return;
+      }
+
+    } else if(type == 'student'){
+
+      const {error} = await supabase
         .from('Students')
-        .select('studentNumber, userID, isAssessed, isArchived, safe_users(full_name, email)')
-        .eq('isAssessed', false),
-      supabase
-        .from('Transient')
-        .select(
-          'transientID, userID, nameOfOccupant, completeAddress, contactNumber, agencyConnected, emergencyContact, isAccepted'
-        )
-        .eq('isAccepted', false),
-      supabase
-        .from('admin')
-        .select('adminID, userID, adminName, isAccepted, safe_users(email)')
-        .eq('isAccepted', false),
-    ]);
+        .update({
+          isAssessed : true
+        })
+        .eq("studentNumber", id);
 
-    if (studentsRes.error || transientsRes.error || adminsRes.error) {
-      setFetchError(
-        studentsRes.error?.message ||
-        transientsRes.error?.message ||
-        adminsRes.error?.message
-      );
-      setLoading(false);
-      return;
+      if(error){
+        console.log("There was an error in approving the student's role: ", error.message);
+        return;
+      }
+
+    } else { //Assuming that this is admin
+
+      const {error} = await supabase
+        .from("admin")
+        .update({
+          isAccepted : true
+        })
+        .eq("adminID", id);
+
+      if(error){
+        console.log("There was an error in approving tge admin's role: ", error.message);
+        return;
+      }
     }
 
-    const studentRequests = studentsRes.data.map(r => ({
-      source: 'student',
-      id:     r.studentNumber,
-      name:   r.safe_users.full_name,
-      email:  r.safe_users.email,
-      isAccepted: r.isAssessed,
-    }));
+  }
 
-    const transientRequests = transientsRes.data.map(r => ({
-      source: 'transient',
-      id:     r.transientID,
-      name:   r.nameOfOccupant,
-      email:  r.userID,            // no email join here?
-      isAccepted: r.isAccepted,
-    }));
+  useEffect(() => {
 
-    const adminRequests = adminsRes.data.map(r => ({
-      source: 'admin',
-      id:     r.adminID,
-      name:   r.adminName,
-      email:  r.safe_users.email,
-      isAccepted: r.isAccepted,
-    }));
+    const fetchAll = async () => {
+      await Promise.all(
+        retrieve_data(),
 
-    setRequests([...studentRequests, ...transientRequests, ...adminRequests]);
-    setLoading(false);
-  };
-
-  // 2) Fetch current (isAccepted = true) admins
-  const fetchAdmins = async () => {
-    const { data, error } = await supabase
-      .from('admin')
-      .select('adminID, adminName, safe_users(email)')
-      .eq('isAccepted', true);
-
-    if (error) {
-      console.error('Error fetching admins:', error.message);
-      return;
+      )
+      setLoad(false);
     }
-
-    setAdmins(
-      data.map((r) => ({
-        id:        r.adminID,
-        adminName: r.adminName,
-        email:     r.safe_users.email,
-      }))
-    );
-  };
-
-  // 3) Accept handler: updates the row, then refreshes both lists as needed
-  const handleAccept = async (source, id) => {
-    let table, pk, updateObj;
-    if (source === 'student') {
-      table = 'Students';    pk = 'studentNumber'; updateObj = { isAssessed: true };
-    } else if (source === 'transient') {
-      table = 'transients';  pk = 'transientID'; updateObj = { isAccepted: true };
-    } else {
-      table = 'admin';       pk = 'adminID';     updateObj = { isAccepted: true };
-    }
-
-    const { error } = await supabase
-      .from(table)
-      .update(updateObj)
-      .eq(pk, id);
-
-    if (error) {
-      console.error('Error accepting:', error.message);
-      return;
-    }
-
-    // remove from requests list
-    setRequests(reqs => reqs.filter(r => !(r.source === source && r.id === id)));
-
-    // if we just accepted an admin, reload the admin list
-    if (source === 'admin') {
-      fetchAdmins();
-    }
-  };
-
-  // 4) Deny handler: deletes the row, then removes from requests
-  const handleDeny = async (source, id) => {
-    let table, pk;
-    if (source === 'student') {
-      table = 'Students';   pk = 'studentNumber';
-    } else if (source === 'transient') {
-      table = 'transients'; pk = 'transientID';
-    } else {
-      table = 'admin';      pk = 'adminID';
-    }
-
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq(pk, id);
-
-    if (error) {
-      console.error('Error denying:', error.message);
-      return;
-    }
-
-    setRequests(reqs => reqs.filter(r => !(r.source === source && r.id === id)));
-  };
-
-  // 5) Remove an already-accepted admin
-  const handleRemoveAdmin = async (id) => {
-    const { error } = await supabase
-      .from('admin')
-      .delete()
-      .eq('adminID', id);
-
-    if (error) {
-      alert('Error in deleting the admin: ' + error.message);
-      return;
-    }
-    fetchAdmins();
-  };
-
-  if (loading)   return <p>Loading…</p>;
-  if (fetchError) return <p className="text-red-600">Error: {fetchError}</p>;
+    
+    //After finish loading
+    fetchAll();
+  }, [currentPage])
 
   return (
-    <div className="py-5">
-      {/* Pending Requests */}
-      <div className="mx-2 p-2 border-2 border-black rounded-2xl flex flex-col gap-2 text-black zain-regular">
-        <h2 className="marcellus-sc-regular text-2xl">List of Requests</h2>
-        <hr />
-        {requests.length > 0 ? (
-          requests.map((r) => (
-            <div key={`${r.source}-${r.id}`} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
-              <p>Name: {r.name}</p>
-              <p>Type: {r.source[0].toUpperCase() + r.source.slice(1)}</p>
-              <p>Email: {r.email}</p>
-              <div>
-                { r.source === 'student' ? 
-                                <button
-                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
-                  onClick={() => {
-                    setSelectedStudentNumber(r.id);  // <-- save the student number
-                    setModalOpen_studentInfo(true);              // <-- open the modal
-                  }}
-                >
-                  View Info
-                </button>
-                 :
-                 ""
-                 }
+    <div className="pt-10 pb-60">
+      {load ? <Loading/> : null}
+      {/* This is the roles request table */}
+      <div>
+        <div>
+          <h1 className="text-black zain-regular ml-15">Roles Request</h1>
+        </div>
+        <div className="mt-10 overflow-x-auto shadow-lg rounded-lg w-[90%] mx-auto">
+          <table className="w-full bg-white border border-gray-200">
+            <thead className="bg-gray-50">
+              {}
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Requested Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-                <button
-                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
-                  onClick={() => handleDeny(r.source, r.id)}
-                >
-                  Deny
-                </button>
-                <button
-                  className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
-                  onClick={() => handleAccept(r.source, r.id)}
-                >
-                  Accept
-                </button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-xl">No pending requests</p>
-        )}
+            {rows && rows.length > 0 ? (
+
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* Example Row (you'll replace this with your dynamic data) */}
+                {rows.map((row) => {
+                  return (
+                    <tr key={row.original_entity_id} className='text-gray-500'>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium ">
+                        {row.requester_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm ">
+                        {row.requester_type == "student" ? 'Student' : row.requester_type == 'admin' ? 'Admin' : 'Transient'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm ">
+                        {row.email ? row.email : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex justify-center space-x-2">
+                          <button onClick={() => handleAccept(row.original_entity_id, row.requester_type)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                            Accept
+                          </button>
+                          <button className="bg-red-300 hover:bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                            Deny
+                          </button>
+                          {row.requester_type !== 'admin' ? 
+                            <button className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                              View
+                            </button> 
+                          : 
+                            <button disabled className="bg-gray-200 text-white px-3 py-1 rounded text-sm transition-colors cursor-not-allowed duration-200">
+                              View
+                            </button> 
+                          }
+
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+
+                {/* End Example Row */}
+              </tbody>
+
+            ) : (
+              <tbody>
+                <tr className='font-medium text-gray-500'>
+                  <td colSpan={4} className='text-center py-5'>
+                    No Data Found
+                  </td>
+                </tr>
+              </tbody>
+            )}
+
+          </table>
+        </div>
+        {/*  This is the pagination*/}
+        <PaginationControls rowsPerPage={5} totalRows={totalRows}  currentPage={currentPage} onPageChange={handlePageChange} />
       </div>
 
-      <StudentFullInfo 
-        isOpen={isModalOpen_studentInfo}
-        onClose={() => setModalOpen_studentInfo(false)}
-        studentNumber={selectedStudentNumber}
-      />
-
-
-      {/* Current Admins */}
-      <div className="mx-2 mt-5 p-2 border-2 border-black rounded-2xl flex flex-col gap-2 text-black zain-regular">
-        <h2 className="marcellus-sc-regular text-2xl">List of Admins</h2>
-        <hr />
-        {admins.length > 0 ? (
-          admins.map((a) => (
-            <div key={a.id} className="flex justify-between items-center text-xl zain-regular max-sm:flex-col">
-              <p>Name: {a.adminName}</p>
-              <p>Email: {a.email}</p>
-              <button
-                className="w-20 py-3 bg-[#4E0303] text-white rounded-xl mr-2 hover:bg-gray-600"
-                onClick={() => handleRemoveAdmin(a.id)}
-              >
-                Remove
-              </button>
-            </div>
-          ))
-        ) : (
-          <p className="text-xl">No records of admin</p>
-        )}
-        <p className="text-sm">
-          <strong>*You cannot delete your own account</strong>
-        </p>
-      </div>
     </div>
   );
 }

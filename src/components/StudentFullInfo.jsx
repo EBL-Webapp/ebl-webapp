@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import supabase from '../supabase_client';
 
 function StudentFullInfo({ isOpen, onClose, studentNumber }) {
