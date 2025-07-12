@@ -24,6 +24,7 @@ const PickRole = () => {
           "userID" : session.user.id,
           "adminName" : session.user.user_metadata.full_name,
           "isAccepted" : false,
+          "email" : session.user.user_metadata.email,
         }])
 
       if(errorAddingAdmin){

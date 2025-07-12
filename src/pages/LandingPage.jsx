@@ -86,7 +86,7 @@ const LandingPage = () => {
         console.log("Does it exist?", isItAccepted[0]);
         
         if(isItAccepted && (isItAccepted[0].isAccepted === true)){
-          localStorage.setItem("adminID", adminID[0].adminID)
+          localStorage.setItem("adminID", adminID)
           navigate('/admin');
           return;
         } else {
