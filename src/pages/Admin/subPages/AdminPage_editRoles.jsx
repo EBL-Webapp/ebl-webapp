@@ -193,9 +193,6 @@ function AdminPage_editRoles() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                   Requested Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                  Email
-                </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                   Actions
                 </th>
@@ -214,9 +211,6 @@ function AdminPage_editRoles() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm ">
                         {row.requester_type == "student" ? 'Student' : row.requester_type == 'admin' ? 'Admin' : 'Transient'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm ">
-                        {row.email ? row.email : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex justify-center space-x-2">

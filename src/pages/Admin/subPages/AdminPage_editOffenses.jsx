@@ -1,536 +1,464 @@
-import React, { useEffect, useState } from 'react';
-import supabase from '../../../supabase_client';
-import { fetchColumnValue } from '../../../fetchColumnValue';
+import supabase from "../../../supabase_client";
+import { useEffect, useState } from "react";
+import Loading from '../../../components/Loading'
+import PaginationControls from '../../../components/PaginationControls';
 
 function AdminPage_editOffenses() {
-  // State variables
-  const [studentsRecords, setStudentsRecords] = useState([]);
-  const [filteredStudents, setFilteredStudents] = useState([]);
-  const [studentRow, setStudentRow] = useState(null);
-  const [offenseList, setOffenseList] = useState([]);
-  const [adminInfo, setAdminInfo] = useState([]);
-  const [offenses_student, setOffenses_students] = useState([]);
 
-  // Modal toggles
-  const [editOffenseStatus, setEditOffense] = useState(false);
-  const [offensesType, setOffensesType] = useState(false);
-  const [offense, setOffense] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [tableData, setTableData] = useState([]);
+  const [specificStudentModal, setSpecificStudentModal] = useState(false)               //CHANGED BACK TO FALSE
+  // Changed specificStudent to store the entire student object, not just the number
+  const [specificStudent, setSpecificStudent] = useState(null);
+  const [specificStudentOffenses, setSpecificStudentOffenses] = useState([]);
+  const [isEditOffenseModal, setIsEditOffenseModal] = useState(false);                  //CHANGED BACK TO FALSE
+  const [adminName, setAdminName] = useState('')
+  const [offenseHighlight, setOffenseHighlight] = useState({
+    offenseID : '',
+    admin : '',
+    offenseName : '',
+    offensePkey : ''
+  })
+  const rowsPerPage = 10; // Define rows per page here
+  const [offensesList, setOffensesList] = useState([]);
+  const [addOffenseModal, setAddOffenseModal] = useState(false);
 
-  // Operation statuses
-  const [updateStatus, setUpdateStatus] = useState({ loading: false, success: false, error: null });
-  const [deleteStatus, setDeleteStatus] = useState({ loading: false, success: false, error: null });
-  const [addOffenseStatus, setAddOffenseStatus] = useState({ loading: false, success: false, error: null });
-  const [addOffenseTypeStatus, setAddOffenseTypeStatus] = useState({ loading: false, success: false, error: null });
+  const handleAddOffenseModal = () => {
+    setAddOffenseModal(!addOffenseModal)
+  }
 
-  // Search state - combined search
-  const [searchValue, setSearchValue] = useState('');
+  // Updated handleOpenSpecificStudent to receive the full student object
+  const handleOpenSpecificStudent = async (student) => {
+    if (!student || !student.studentNumber) { // Check for valid student object and number
+      console.error("Error: passed in open specific student function with invalid student object or empty studentNumber");
+      return;
+    }
+    setSpecificStudent(student); // Store the entire student object
+    setSpecificStudentModal(true);
+    setIsLoading(true);
 
-  // New offense type form state
-  const [newOffenseType, setNewOffenseType] = useState({ offenseName: '', offenseSeverity: '' });
+    // Let's get the student's offenses:
+    const { data, error } = await supabase.from('Offenses_Occured').select('*, List_of_Offenses(offenseName)').eq('studentNumber', student.studentNumber); // Use student.studentNumber
+    if (error) {
+      console.error("There was an error in getting the list offenses of the student: ", error.message);
+      setSpecificStudentOffenses([]); // Clear offenses on error
+      setIsLoading(false);
+      return;
+    }
+    console.log("Students offenses: ", data)
+    setSpecificStudentOffenses(data);
+    setIsLoading(false);
+  }
 
-  // New offense form state
-  const [newOffense, setNewOffense] = useState({
-    studentNumber: '',
-    offenseID: '',
-    timestamp: new Date().toISOString().substr(0, 10)
-  });
+  // Function to fetch data from Supabase
+  const fetchData = async () => {
+    setIsLoading(true); // Start loading
+    try {
+      const from = (currentPage - 1) * rowsPerPage;
+      const to = from + rowsPerPage - 1; // Supabase range is inclusive
+
+      const { data, error, count } = await supabase.from('Students').select('studentNumber, studentName ', { count: 'exact' }).range(from, to);
+      if (error) {
+        console.error("Error in fetching data in editing offenses: ", error.message);
+        setTableData([]);
+        setTotalRows(0);
+        return;
+      }
+      setTotalRows(count);
+      setTableData(data);
+    } catch (error) {
+      console.error("There was an error in fetching data: ", error);
+      setTableData([]);
+      setTotalRows(0);
+    } finally {
+      setIsLoading(false); // End loading regardless of success or failure
+    }
+  }
+
+  const handleOpenEdit = async (offense) => {
+    console.log("DEBUG - Full offense object:", offense);
+    console.log("DEBUG - Current offensesList:", offensesList);
+    
+    setOffenseHighlight({
+      offenseID : offense.offenceInstance,
+      admin : offense.adminName,
+      offenseName : offense.List_of_Offenses.offenseName,
+      offensePkey : offense.offenseID  // This is the current offense type ID
+    })
+    console.log("DEBUG - Set offenseHighlight.offensePkey to:", offense.offenseID);
+    setIsEditOffenseModal(true);
+  }
+
+  const getOffenses = async () => {
+    const {data, error} = await supabase.from("List_of_Offenses").select("*")
+    if(error){
+      console.log("Error in getting offenses: ", error.message);
+      return
+    }
+    console.log("DEBUG - Offenses list structure:", data);
+    setOffensesList(data)
+  }
 
   useEffect(() => {
-    display_records();
-    get_offenses();
-    get_admin();
-  }, []);
+    console.log("Updated offenseHighlight:", offenseHighlight);
+  }, [offenseHighlight]);
 
-  // Real-time search effect
+  const editSpecificOffense = async (event) => {
+    event.preventDefault()
+    
+    if (!offenseHighlight.offensePkey) {
+      console.error("No offense selected");
+      alert("Please select an offense type");
+      return;
+    }
+
+    console.log("Updating offense with ID:", offenseHighlight.offenseID);
+    console.log("New offense type ID:", offenseHighlight.offensePkey);
+    
+    // Update the offense record with new offense type and admin
+    const {error} = await supabase
+      .from("Offenses_Occured")
+      .update({
+        offenseID: offenseHighlight.offensePkey,  // Update to new offense type
+        adminName: adminName,  // Update admin name to current user
+        timestamp: new Date().toISOString()  // Update timestamp
+      })
+      .eq('offenceInstance', offenseHighlight.offenseID);  // Use the correct identifier
+    
+    if(error){
+      console.log("There was an error in updating: ", error.message);
+      alert("Error updating offense: " + error.message);
+      return;
+    }
+    
+    console.log("Offense updated successfully");
+    alert("Offense updated successfully!");
+    
+    // Close the edit modal
+    setIsEditOffenseModal(false);
+    
+    // Refresh the student's offenses list
+    if (specificStudent) {
+      await handleOpenSpecificStudent(specificStudent);
+    }
+  }
+
+  const deleteSpecificOffense = async (event) => {
+    event.preventDefault();
+    
+    if (!confirm("Are you sure you want to delete this offense? This action cannot be undone.")) {
+      return;
+    }
+
+    console.log("Deleting offense with ID:", offenseHighlight.offenseID);
+    
+    const {error} = await supabase
+      .from("Offenses_Occured")
+      .delete()
+      .eq('offenceInstance', offenseHighlight.offenseID);  // Use the correct identifier
+    
+    if(error){
+      console.log("There was an error in deleting: ", error.message);
+      alert("Error deleting offense: " + error.message);
+      return;
+    }
+    
+    console.log("Offense deleted successfully");
+    alert("Offense deleted successfully!");
+    
+    // Close the edit modal
+    setIsEditOffenseModal(false);
+    
+    // Refresh the student's offenses list
+    if (specificStudent) {
+      await handleOpenSpecificStudent(specificStudent);
+    }
+  }
+
+  // Effect hook to fetch data whenever currentPage changes
   useEffect(() => {
-    if (searchValue.trim() === '') {
-      setFilteredStudents(studentsRecords);
-    } else {
-      const filtered = studentsRecords.filter(student => 
-        student.studentName?.toLowerCase().includes(searchValue.toLowerCase()) ||
-        student.studentNumber?.includes(searchValue)
-      );
-      setFilteredStudents(filtered);
-    }
-  }, [searchValue, studentsRecords]);
+    fetchData();
+  }, [currentPage]); // Dependency array includes currentPage to re-fetch on page change
 
-  // Fetch functions
-  const display_records = async () => {
-    const { data, error } = await supabase
-      .from('Students')
-      .select(`
-        *,
-        Application_for_Dorm_Accomodation (
-          studentName,
-          studentNumber
-        )
-      `)
-      .eq("isArchived", false);
+  useEffect(() => {
+    getOffenses()
 
-    if (error) {
-      console.error("Error fetching student records:", error.message);
-      return;
-    }
-
-    // Optional: flatten the data to match what frontend expects
-    const flattenedData = data.map(record => ({
-      ...record,
-      ...record.Application_for_Dorm_Accomodation
-    }));
-
-    console.log("List of students: ", flattenedData);
-    setStudentsRecords(flattenedData);
-    setFilteredStudents(flattenedData);
-  };
-
-
-  const get_offenses = async () => {
-    const { data, error } = await supabase
-      .from('List_of_Offenses')
-      .select('*');
-    if (error) {
-      console.error("Error fetching offense list:", error.message);
-      return;
-    }
-    setOffenseList(data);
-  };
-
-  const get_admin = async () => {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error("Session error:", sessionError.message);
-      return;
-    }
-    const adminID = await fetchColumnValue('admin', 'userID', sessionData.session.user.id, 'adminID');
-    const { data, error } = await supabase
-      .from('admin')
-      .select('*')
-      .eq('adminID', adminID);
-    if (error) {
-      console.error("Error fetching admin info:", error.message);
-      return;
-    }
-    setAdminInfo(data);
-  };
-
-  // Search handler - now just updates the search value
-  const handleSearchChange = (e) => {
-    setSearchValue(e.target.value);
-  };
-
-  // Modal toggles
-  const addOffenseType = () => {
-    setOffensesType(prev => !prev);
-    setNewOffenseType({ offenseName: '', offenseSeverity: '' });
-    setAddOffenseTypeStatus({ loading: false, success: false, error: null });
-  };
-
-  const addOffense = () => {
-    setOffense(prev => !prev);
-    setNewOffense({ studentNumber: '', studentName: '', offenseID: '', timestamp: new Date().toISOString().substr(0, 10) });
-    setAddOffenseStatus({ loading: false, success: false, error: null });
-  };
-
-  // Handlers for new offense form
-  const handleNewOffenseTypeChange = e => setNewOffenseType(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleNewOffenseChange = e => setNewOffense(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const on_Edit = (index, field, value) => {
-    const updatedOffenses = [...offenses_student];
-    updatedOffenses[index] = { ...updatedOffenses[index], [field]: value };
-    setOffenses_students(updatedOffenses);
-  };
-
-  const findStudentByNumber = async number => {
-    if (!number) return;
-    const { data, error } = await supabase
-      .from('Application_for_Dorm_Accomodation')
-      .select('studentName, studentNumber')
-      .eq('studentNumber', number)
-      .single();
-    if (error) {
-      console.error("Error finding student:", error.message);
-      return;
-    }
-    setNewOffense(prev => ({ ...prev, studentName: data.studentName, studentNumber: data.studentNumber }));
-  };
-
-  // Submit new offense type
-  const submitNewOffenseType = async e => {
-    e.preventDefault();
-    setAddOffenseTypeStatus({ loading: true, success: false, error: null });
-    if (!newOffenseType.offenseName || !newOffenseType.offenseSeverity) {
-      return setAddOffenseTypeStatus({ loading: false, success: false, error: 'Please fill all fields' });
-    }
-    const { error } = await supabase
-      .from('List_of_Offenses')
-      .insert([{ ...newOffenseType }]);
-    if (error) {
-      return setAddOffenseTypeStatus({ loading: false, success: false, error: error.message });
-    }
-    await get_offenses();
-    setAddOffenseTypeStatus({ loading: false, success: true, error: null });
-    setTimeout(() => setOffensesType(false), 2000);
-  };
-
-  // Submit new offense
-  const submitNewOffense = async e => {
-    e.preventDefault();
-    setAddOffenseStatus({ loading: true, success: false, error: null });
-    if (!newOffense.studentNumber || !newOffense.offenseID || !newOffense.timestamp) {
-      return setAddOffenseStatus({ loading: false, success: false, error: 'Please fill all fields' });
-    }
-    if (!adminInfo[0]?.adminID) {
-      return setAddOffenseStatus({ loading: false, success: false, error: 'Admin info not available' });
-    }
-    
-    // Remove studentName from the object since it's not in the Offenses_Occured table
-    const { studentName, ...offenseData } = newOffense;
-    
-    const { error } = await supabase
-      .from('Offenses_Occured')
-      .insert([{
-        ...offenseData,
-        adminID: adminInfo[0].adminID
-      }]);
-    if (error) {
-      return setAddOffenseStatus({ loading: false, success: false, error: error.message });
-    }
-    setAddOffenseStatus({ loading: false, success: true, error: null });
-    setTimeout(() => setOffense(false), 2000);
-  };
-
-  // Edit modal
-  const editOffense = async studentNumber => {
-    // Toggle the edit offense modal state
-    setEditOffense(prev => !prev);
-    
-    // Only fetch student offenses when opening the modal (not when closing)
-    if (!editOffenseStatus) {
-      try {
-        // Find the student record
-        const student = studentsRecords.find(s => s.studentNumber === studentNumber);
-        setStudentRow(student);
-        
-        // Fetch offenses for this student with all related data
-        const { data, error } = await supabase
-          .from('Offenses_Occured')
-          .select(`
-            *,
-            admin (adminName),
-            List_of_Offenses (offenseName, offenseSeverity)
-          `)
-          .eq('studentNumber', studentNumber);
-          console.log("The student number is:", studentNumber);
-
-          
-        if (error) {
-          console.error("Error fetching student offenses:", error.message);
-          return;
-        }
-        
-        console.log("Fetched student offenses:", data);
-        setOffenses_students(data || []);
-      } catch (err) {
-        console.error("Exception in editOffense:", err);
-      }
-    } else {
-      // Clear offenses when closing the modal
-      setOffenses_students([]);
-    }
-  };
-
-  // Update and delete handlers
-  const handleUpdate = async instance => {
-    setUpdateStatus({ loading: true, success: false, error: null });
-    const record = offenses_student.find(o => o.offenceInstance === instance);
-    if (!record) {
-      return setUpdateStatus({ loading: false, success: false, error: 'Record not found' });
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('Offenses_Occured')
-        .update({ offenseID: record.offenseID, timestamp: record.timestamp })
-        .eq('offenceInstance', instance);
-        
-      if (error) {
-        return setUpdateStatus({ loading: false, success: false, error: error.message });
-      }
-      
-      setUpdateStatus({ loading: false, success: true, error: null });
-      setTimeout(() => setUpdateStatus({ loading: false, success: false, error: null }), 3000);
-    } catch (err) {
-      setUpdateStatus({ loading: false, success: false, error: err.message });
-    }
-  };
-
-  const handleDelete = async instance => {
-    setDeleteStatus({ loading: true, success: false, error: null });
-    if (!window.confirm('Are you sure?')) {
-      return setDeleteStatus({ loading: false, success: false, error: null });
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('Offenses_Occured')
-        .delete()
-        .eq('offenceInstance', instance);
-        
-      if (error) {
-        return setDeleteStatus({ loading: false, success: false, error: error.message });
-      }
-      
-      setOffenses_students(prev => prev.filter(o => o.offenceInstance !== instance));
-      setDeleteStatus({ loading: false, success: true, error: null });
-      setTimeout(() => setDeleteStatus({ loading: false, success: false, error: null }), 3000);
-    } catch (err) {
-      setDeleteStatus({ loading: false, success: false, error: err.message });
-    }
-  };
+    // Getting the admin name
+    const adminName_str = localStorage.getItem('Session');
+    const adminName_obj = JSON.parse(adminName_str);
+    setAdminName(adminName_obj.session.user.user_metadata.name);
+  }, [])
 
   return (
-    <>
-      <div className='bg-white pt-5'>
-        {/* Add Offense Modal */}
-        {offense && (
-          <div className='fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/75'>
-            <div className='bg-white zain-regular text-black rounded-2xl p-5 md:w-[50%] max-md:w-[90%]'>
-              <h2 className='text-xl font-bold mb-4'>Add New Offense</h2>
-              {addOffenseStatus.success && (
-                <div className='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4'>Offense added successfully!</div>
-              )}
-              {addOffenseStatus.error && (
-                <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4'>Error: {addOffenseStatus.error}</div>
-              )}
-              <form onSubmit={submitNewOffense} className='w-full'>
-                <label>Student Number:</label><br />
-                <div className='flex gap-2 mb-2'>
-                  <input
-                    type='text'
-                    name='studentNumber'
-                    value={newOffense.studentNumber}
-                    onChange={handleNewOffenseChange}
-                    className='border-b-2 flex-grow'
-                  />
-                  <button type='button' onClick={() => findStudentByNumber(newOffense.studentNumber)} className='bg-gray-200 px-2 rounded'>Find</button>
-                </div>
-                <br />
-                <label>Name of Admin: </label> <br />
-                <p><u>{adminInfo[0]?.adminName || 'Admin Name'}</u></p> <br />
-                <label>Offense Type: </label> <br />
-                <select
-                  name='offenseID'
-                  value={newOffense.offenseID}
-                  onChange={handleNewOffenseChange}
-                  className='border-b-2 border-black mb-3 w-full'
-                >
-                  <option value=''>Select Offense Type</option>
-                  {offenseList.map(an_offense => (
-                    <option key={an_offense.offenseID} value={an_offense.offenseID}>
-                      {an_offense.offenseName}
-                    </option>
-                  ))}
-                </select>{' '}<br />
-                <label>Date</label> <br />
-                <input
-                  type='date'
-                  name='timestamp'
-                  value={newOffense.timestamp}
-                  onChange={handleNewOffenseChange}
-                  className='border-b-2 border-black w-full'
-                />{' '}
-                <br />
-                <div className='flex justify-end mt-4'>
-                  <button
-                    type='submit'
-                    disabled={addOffenseStatus.loading}
-                    className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                  >
-                    {addOffenseStatus.loading ? 'Adding...' : 'Add Offense'}
-                  </button>
-                  <button
-                    type='button'
-                    className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                    onClick={addOffense}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+    <div className="py-10 px-4 sm:px-6 lg:px-8 bg-gray-100 min-h-screen font-sans"> {/* Added background and default font */}
+
+      {/* Conditionally render Loading component */}
+      {isLoading && <Loading />}
+
+      {/* Specific Student Offenses Modal */}
+      {specificStudentModal && (
+        <div onClick={() => setSpecificStudentModal(false)} className="fixed inset-0 bg-white/10 backdrop-blur-xs z-50 flex items-center justify-center text-black p-4"> {/* Added p-4 for mobile padding */}
+          <div onClick={(e) => e.stopPropagation()} className="p-5 bg-white rounded-2xl shadow-lg w-full max-w-md">
+            {/* Top part */}
+            <div className="flex items-center gap-2">
+              <span className="zain-regular align-middle font-semibold"> {/* Added font-semibold */}
+                Name:
+              </span>
+              {/* Display actual student name from state */}
+              <span className="truncate align-middle zain-regular overflow-hidden whitespace-nowrap flex-grow"> {/* Use flex-grow for dynamic width */}
+                {specificStudent?.studentName || 'N/A'}
+              </span>
             </div>
-          </div>
-        )}
-
-        {/* Add Offense Type Modal */}
-        {offensesType && (
-          <div className='fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/75'>
-            <div className='bg-white zain-regular text-black rounded-2xl p-5 md:w-[50%] max-md:w-[90%]'>
-              <h2 className='text-xl font-bold mb-4'>Add New Offense Type</h2>
-              {addOffenseTypeStatus.success && (
-                <div className='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4'>Offense type added successfully!</div>
-              )}
-              {addOffenseTypeStatus.error && (
-                <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4'>Error: {addOffenseTypeStatus.error}</div>
-              )}
-              <form onSubmit={submitNewOffenseType} className='w-full'>
-                <label>Name of Admin: </label><br />
-                <p><u>{adminInfo[0]?.adminName || 'Admin Name'}</u></p><br />
-                <label>Offense Name: </label><br />
-                <input
-                  type='text'
-                  name='offenseName'
-                  value={newOffenseType.offenseName}
-                  onChange={handleNewOffenseTypeChange}
-                  className='border-b-2 border-black mb-3 w-full'
-                /> <br />
-                <label>Offense Severity:</label><br />
-                <select
-                  name='offenseSeverity'
-                  value={newOffenseType.offenseSeverity}
-                  onChange={handleNewOffenseTypeChange}
-                  className='border-b-2 border-black mb-3 w-full'
-                >
-                  <option value=''>Select Severity Type</option>
-                  <option value='Minor'>Minor</option>
-                  <option value='Moderate'>Moderate</option>
-                  <option value='Severe'>Severe</option>
-                </select><br />
-                <div className='flex justify-end mt-4'>
-                  <button
-                    type='submit'
-                    disabled={addOffenseTypeStatus.loading}
-                    className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                  >
-                    {addOffenseTypeStatus.loading ? 'Adding...' : 'Add Offense Type'}
-                  </button>
-                  <button
-                    type='button'
-                    className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                    onClick={addOffenseType}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="zain-regular text-md font-semibold"> {/* Added font-semibold */}
+                Student#:
+              </span>
+              {/* Display actual student number from state */}
+              <span className="truncate zain-regular text-md overflow-hidden whitespace-nowrap flex-grow">
+                {specificStudent?.studentNumber || 'N/A'}
+              </span>
             </div>
-          </div>
-        )}
-
-        {/* Edit Offense Modal */}
-        {editOffenseStatus && studentRow && (
-          <div className='fixed inset-0 z-[100] flex justify-center bg-gray-900/75 overflow-y-auto py-10 px-4'>
-            <div className='bg-white zain-regular text-black rounded-2xl p-5 w-[90%] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 md:gap-5 h-fit'>
-              <p className='col-span-1 md:col-span-2 lg:col-span-3'>Student Name: {studentRow.studentName}</p>
-              <p className='col-span-1 md:col-span-2 lg:col-span-3'>Student Number: {studentRow.studentNumber}</p>
-
-              <button
-                className='col-span-1 md:col-span-2 lg:col-span-3 bg-[#4E0303] p-1 text-white rounded-xl hover:bg-[#1e6a23] hover:text-black'
-                onClick={() => editOffense(studentRow.studentNumber)}
-              >
-                Return
-              </button>
-
-              {/* Status messages */}
-              {updateStatus.success && <div className='col-span-1 md:col-span-2 lg:col-span-3 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded'>Offense updated successfully!</div>}
-              {updateStatus.error && <div className='col-span-1 md:col-span-2 lg:col-span-3 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded'>Error updating offense: {updateStatus.error}</div>}
-              {deleteStatus.success && <div className='col-span-1 md:col-span-2 lg:col-span-3 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded'>Offense deleted successfully!</div>}
-              {deleteStatus.error && <div className='col-span-1 md:col-span-2 lg:col-span-3 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded'>Error deleting offense: {deleteStatus.error}</div>}
-
-              {/* One Card per offense */}
-              {offenses_student && offenses_student.length > 0 ? (
-                offenses_student.map((x, iter) => (
-                  <div key={x.offenceInstance} className='m-1 border-1 border-black rounded-xl p-4'>
-                    <label>Date: </label>
-                    <input
-                      onChange={e => on_Edit(iter, 'timestamp', e.target.value)}
-                      value={x.timestamp || ''}
-                      type='date'
-                      className='border border-gray-300 rounded px-2 py-1 w-full'
-                    />
-                    <br />
-                    <hr className='my-2' />
-                    <label>Offense Type: </label>
-                    <select
-                      value={x.offenseID || ''}
-                      onChange={e => on_Edit(iter, 'offenseID', e.target.value)}
-                      className='border-b-2 border-black mb-3 w-full'
-                    >
-                      {offenseList.map(an_offense => (
-                        <option key={an_offense.offenseID} value={an_offense.offenseID}>
-                          {an_offense.offenseName}
-                        </option>
-                      ))}
-                    </select>
-                    <br />
-                    <label>Administered by:</label>
-                    <p><u>{x.admin?.adminName || 'Unknown Admin'}</u></p>
-                    <br />
-                    <div className='flex justify-end'>
-                      <button
-                        onClick={() => handleUpdate(x.offenceInstance)}
-                        disabled={updateStatus.loading}
-                        className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                      >
-                        {updateStatus.loading ? 'Saving...' : 'Save Edit'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(x.offenceInstance)}
-                        disabled={deleteStatus.loading}
-                        className='p-2 bg-[#4E0303] text-white rounded-lg m-2 hover:bg-[#1e6a23] hover:text-black'
-                      >
-                        {deleteStatus.loading ? 'Deleting...' : 'Delete'}
-                      </button>
+            {/* Bottom Part */}
+            <hr className="bg-gray-300 border-[0.5] rounded-xl my-5" />
+            <div className="max-h-[300px] overflow-y-auto space-y-3"> {/* Added space-y for gap between offense cards */}
+              {specificStudentOffenses.length > 0 ? (
+                specificStudentOffenses.map((offense) => (
+                  <div key={offense.offenceInstance} className="zain-regular border p-3 rounded-lg border-gray-200 shadow-sm bg-gray-50"> 
+                    <div>
+                      <span className="font-medium">Date:</span> {offense.timestamp}
                     </div>
+                    <div>
+                      <span className="font-medium">By:</span> {offense.adminName}
+                    </div>
+                    <div>
+                      <span className="font-medium">Offense:</span> {offense.List_of_Offenses.offenseName}
+                    </div>
+                    <button onClick={() => {handleOpenEdit(offense)}} className="w-full my-2 text-center text-white rounded-2xl bg-[#114516] py-2 hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md">
+                      Edit
+                    </button>
                   </div>
                 ))
               ) : (
-                <p className='marcellus-sc-regular col-span-1 md:col-span-2 lg:col-span-3'>No offenses found for this student</p>
+                <p className="text-center text-gray-500">No offenses recorded for this student.</p>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Search and Action Buttons Section */}
-        <div className='flex justify-center gap-3 zain-regular text-black max-md:my-5 max-md:mx-10 max-sm:flex-col'>
-          {/* Combined Search Field */}
-          <div className='flex-grow max-w-md'>
-            <input
-              type='text'
-              placeholder='Search by name or student number...'
-              value={searchValue}
-              onChange={handleSearchChange}
-              className='py-2 px-4 rounded-2xl border-2 w-full'
-            />
-          </div>
-          
-          {/* Action Buttons */}
-          <div className='flex justify-around gap-2'>
-            <button onClick={addOffenseType} className='bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black whitespace-nowrap'>Add Offense Type</button>
-            <button onClick={addOffense} className='bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black whitespace-nowrap'>ADD OFFENSE</button>
+            <div className="flex mt-4"> {/* Increased top margin */}
+              <button onClick={() => setSpecificStudentModal(false)} className="mx-auto py-2 px-6 text-center w-full text-black rounded-2xl bg-white shadow-md my-2 hover:bg-[#1e6a23] hover:text-white transition-colors duration-200 border border-gray-300"> {/* Added px-6 and border */}
+                RETURN
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Display Part */}
-        <div className='bg-white pb-2'>
-          <div className='p-4 m-4 border-2 border-black rounded-2xl zain-regular text-black h-fit'>
-            {filteredStudents && filteredStudents.length > 0 ? (
-              filteredStudents.map(student => (
-                <div key={student.studentNumber} className='flex justify-between text-[10px] md:text-[12px] lg:text-[20px] items-center p-2 border-b'>
-                  <div><p>Name: {student.studentName}</p></div>
-                  <div><p>Student Number: {student.studentNumber}</p></div>
-                  <div>
-                    <button onClick={() => editOffense(student.studentNumber)} className='m-2 bg-[#114516] text-white py-2 px-3 rounded-2xl hover:bg-[#1e6a23] hover:text-black'>Edit Offenses</button>
-                  </div>
+      {isEditOffenseModal && (
+        <div onClick={() => setIsEditOffenseModal(false)} className="fixed inset-0 bg-white/10 backdrop-blur-xs z-50 flex items-center justify-center text-black p-4">
+          <div onClick={(e) => e.stopPropagation()} className="p-5 bg-white rounded-lg max-w-md w-full zain-regular">
+            <div className="p-2 max-w-[300px] truncate overflow-hidden text-ellipsis whitespace-nowrap">
+              Offense ID: {offenseHighlight.offenseID}
+            </div>
+            <hr className="my-3"/>
+            <div className="mt-2">
+              <form onSubmit={editSpecificOffense}>
+                <div className="mb-4">
+                  <label className="block mb-2">
+                    Offense Name:
+                  </label>
+                  <select
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#114516]"
+                    value={offenseHighlight.offensePkey}
+                    onChange={(event) => {
+                      const selectedValue = event.target.value;
+                      console.log("DEBUG - Selected value:", selectedValue);
+                      console.log("DEBUG - Available offenses:", offensesList);
+                      
+                      const selected = offensesList.find(o => {
+                        console.log("DEBUG - Comparing:", o.offenseID, "with", selectedValue);
+                        return String(o.offenseID) === String(selectedValue);
+                      });
+                      
+                      console.log("DEBUG - Found selected offense:", selected);
+                      
+                      if (selectedValue && !selected) {
+                        console.error("Selected offense not found! Available keys:", offensesList.map(o => o.offenseID));
+                        return;
+                      }
+                      setOffenseHighlight((prev) => ({
+                        ...prev,
+                        offensePkey: selectedValue,
+                        offenseName: selected ? selected.offenseName : ''
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Select an offense</option>
+                    {offensesList.map((offense) => (
+                      <option key={offense.offenseID} value={offense.offenseID}>
+                        {offense.offenseName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))
-            ) : (
-              <p className='marcellus-sc-regular'>No record...</p>
-            )}
+                
+                <div className="mb-4">
+                  <span className="block mb-2">
+                    Admin: 
+                  </span>
+                  <span className="ml-2 text-gray-700">
+                    {adminName}
+                  </span>
+                </div>
+                
+                <p className="mt-5 text-gray-500 text-sm">
+                  Updating this will make you the submitter of the offense and update the timestamp.
+                </p>
+                
+                <div className="flex justify-around mt-6 gap-3">
+                  <button 
+                    type="button"
+                    onClick={deleteSpecificOffense}
+                    className="flex-1 text-center px-2 text-white rounded-2xl bg-red-600 py-2 hover:bg-red-700 transition-colors duration-200 shadow-md"
+                  >
+                    Delete
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 text-center px-4 text-white rounded-2xl bg-[#114516] py-2 hover:bg-[#1e6a23] transition-colors duration-200 shadow-md"
+                  >
+                    Update
+                  </button>
+                </div>
+              </form>
+              
+              <button 
+                onClick={() => setIsEditOffenseModal(false)}
+                className="w-full mt-3 py-2 px-6 text-center text-black rounded-2xl bg-gray-200 shadow-md hover:bg-gray-300 transition-colors duration-200 border border-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addOffenseModal && (
+        <div>
+        </div>
+      )}
+
+      <div onClick={() => handleAddOffenseModal()} className="fixed inset-0 bg-white/10 backdrop-blur-xs z-10 flex items-center justify-center text-black p-4">
+        <div className="p-5 bg-white rounded-2xl shadow-lg w-full max-w-md">
+          <div className="zain-regular flex gap-2">
+            <div>
+              Steps: 
+            </div>
+            <div className="flex gap-3 ml-2">
+              <div>
+                1
+              </div>
+              <div>
+                2
+              </div>
+            </div>
+          </div>
+          <div>
+
           </div>
         </div>
       </div>
-    </>
+
+      <h1 className="marcellus-sc-regular text-black py-10 text-2xl md:text-3xl lg:text-4xl text-center md:text-left">
+        Edit Offenses
+      </h1>
+
+      {/* Actions Section - Improved Responsiveness */}
+      <div className="flex flex-col md:flex-row w-full md:w-[90%] mx-auto justify-between items-center space-y-4 md:space-y-0">
+        {/* Search Input and Button Group */}
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          <input
+            type="text"
+            className="text-black rounded-2xl border-2 border-gray-600 py-2 px-4 w-full sm:w-auto flex-grow focus:outline-none focus:ring-2 focus:ring-[#114516]" // Added focus styles
+            placeholder="Name or Student#"
+          />
+          <button className="px-5 py-2 w-full sm:w-auto bg-[#114516] text-white rounded-2xl hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md hover:shadow-lg"> {/* Added shadow */}
+            Search
+          </button>
+        </div>
+
+        {/* Add Offense Buttons Group */}
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          <button onClick={() => handleAddOffenseModal()} className="px-5 py-2 w-full sm:w-auto bg-[#114516] text-white rounded-2xl hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md hover:shadow-lg"> {/* Added shadow */}
+            Add Offense
+          </button>
+          <button className="px-5 py-2 w-full sm:w-auto bg-[#114516] text-white rounded-2xl hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md hover:shadow-lg"> {/* Added shadow */}
+            Add Offense Type
+          </button>
+        </div>
+      </div>
+
+      {/* Table Container - Ensuring overflow-x-scroll works */}
+      <div className="w-full md:w-[90%] mx-auto mt-10 overflow-x-auto rounded-lg shadow-md border border-gray-200">
+        {/* IMPORTANT: Removed the problematic whitespace here */}
+        <table className="min-w-full bg-white">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Student Number
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {tableData.length > 0 ? (
+              tableData.map((student, index) => (
+                <tr key={student.studentNumber} className={index % 2 === 0 ? "bg-white" : "bg-gray-50 hover:bg-gray-100"}> 
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {student.studentName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {student.studentNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex justify-center space-x-2">
+                      {/* Pass the entire student object to handleOpenSpecificStudent */}
+                      <button onClick={() => handleOpenSpecificStudent(student)} className="bg-[#4E0303] hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md">
+                        See Offenses
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="text-gray-700 text-center zain-regular py-5 text-sm md:text-lg" colSpan={3}>
+                  No Data...
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="mt-10">
+        {totalRows > 0 && ( // Only render pagination if there are rows
+          <PaginationControls
+            rowsPerPage={rowsPerPage}
+            totalRows={totalRows}
+            currentPage={currentPage}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        )}
+      </div>
+
+    </div>
   );
 }
 

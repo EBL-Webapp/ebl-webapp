@@ -11,7 +11,8 @@ function PaginationControls({
   onPageChange,     // Function to call when a page is selected: onPageChange(newPageNumber)
 }) {
   // Calculate the total number of pages
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
 
   // Function to generate the array of page numbers to display in the UI.
   // This logic aims to show a few pages around the current page, plus the first and last page,
