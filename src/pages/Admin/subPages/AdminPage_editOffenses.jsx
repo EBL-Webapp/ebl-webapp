@@ -24,9 +24,49 @@ function AdminPage_editOffenses() {
   const rowsPerPage = 10; // Define rows per page here
   const [offensesList, setOffensesList] = useState([]);
   const [addOffenseModal, setAddOffenseModal] = useState(false);
+  const [steps, set_steps] = useState({
+    step1 : true,
+    step2 : false
+  })
 
   const handleAddOffenseModal = () => {
-    setAddOffenseModal(!addOffenseModal)
+    setAddOffenseModal(prev => !prev)
+  }
+  const [addOffense_formData, setAddOffense_formData] = useState({
+    name : '',
+    studentNumber: '',
+  })
+
+  const [addOffense_isFind, setAddOffense_isFind] = useState(false);
+
+
+  const handleOffense_specificStudent = async (event) => {
+    event.preventDefault()
+    if (addOffense_formData.name === '' && addOffense_formData.studentNumber === '' ){
+      alert("Please add a name or student number")
+      return
+    }
+    setAddOffense_isFind(prev => !prev)
+
+    // We do a query here:
+    if (addOffense_formData.name === '' && addOffense_formData.studentNumber !== ''){
+      const {data, error} = await supabase.from("Students").select("*").eq(studentNumber, addOffense_formData.studentNumber)
+      if(error){
+        console.log(error.message);
+      }
+    }
+    if (addOffense_formData.name !== '' && addOffense_formData.studentNumber === ''){
+      const {data, error} = await supabase.from("Students").select("*").or(`studentName.ilike.%${addOffense_formData.name}%`)
+      if(error){
+        console.log(error.message);
+      }
+    }
+    if (addOffense_formData.name !== '' && addOffense_formData.studentNumber !== ''){
+      const {data, error} = await supabase.from("Students").select("*").or(`studentNumber.eq.${addOffense_formData.studentNumber},studentName.ilike.${addOffense_formData.name}`)
+      if(error){
+        console.log(error.message);
+      }
+    }
   }
 
   // Updated handleOpenSpecificStudent to receive the full student object
@@ -344,30 +384,66 @@ function AdminPage_editOffenses() {
       )}
 
       {addOffenseModal && (
-        <div>
+        <div>   
+          <div onClick={() => handleAddOffenseModal()} className="fixed inset-0 bg-white/10 backdrop-blur-xs z-50 flex items-center justify-center text-black p-4">
+            <div onClick={(e) => e.stopPropagation()} className="p-5 bg-white rounded-2xl shadow-lg w-full max-w-md zain-regular">
+              <div className="zain-regular flex justify-between items-center">
+                <div className="flex gap-2 items-center">
+                  <div>
+                    Steps: 
+                  </div>
+                  <div className="flex gap-3 ml-2 items-center">
+                    <div className={steps.step1 ? "bg-gradient-to-tr from-[#114516] to-pink-400 shadow-pink-500 shadow-md text-white p-2 px-3 rounded-xl" : null} >
+                      1
+                    </div>
+                    <div className={steps.step2 ? "bg-gradient-to-tr from-[#114516] to-pink-400 shadow-pink-500 shadow-md text-white p-2 px-3 rounded-xl" : null}>
+                      2
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <button className="text-center text-white rounded-2xl bg-[#114516] p-2 hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md">
+                    Back
+                  </button>
+                </div>
+
+              </div>
+              <div className="mt-5">
+                <div>Search for the name of the student or their student number: </div>
+                <form className="border-2 border-black p-2 rounded-xl">
+                  <div>
+                    <label className="mr-2">Enter the name: </label>
+                    <input onChange={e => setAddOffense_formData(prevData => ({
+                      ...prevData,
+                      name : e.target.value
+                    }))} type="text" placeholder="Enter Name" />
+                    <br/>
+                    <label>Enter the student number: </label>
+                    <input onChange={e => setAddOffense_formData(prevData => ({
+                      ...prevData,
+                      studentNumber : e.target.value
+                    }))} type="text" placeholder="20XX-XXXXX" />
+                  </div>
+                  <div className="flex justify-end">
+                    <button onClick={(event) => handleOffense_specificStudent(event)}  className="text-center text-white rounded-2xl bg-[#114516] p-2 hover:bg-[#1e6a23] hover:text-black transition-colors duration-200 shadow-md">
+                      Find!
+                    </button>
+                  </div>
+                </form>
+                {/* Result */}
+                {addOffense_isFind && (
+                <div className="mt-5 p-2 border-2 border-black rounded-2xl">
+                  <p>Is this the name(s):</p>
+                  <div className="bg-amber-200 p-2 rounded-xl ">
+                    Name
+                  </div>
+                </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      <div onClick={() => handleAddOffenseModal()} className="fixed inset-0 bg-white/10 backdrop-blur-xs z-10 flex items-center justify-center text-black p-4">
-        <div className="p-5 bg-white rounded-2xl shadow-lg w-full max-w-md">
-          <div className="zain-regular flex gap-2">
-            <div>
-              Steps: 
-            </div>
-            <div className="flex gap-3 ml-2">
-              <div>
-                1
-              </div>
-              <div>
-                2
-              </div>
-            </div>
-          </div>
-          <div>
-
-          </div>
-        </div>
-      </div>
 
       <h1 className="marcellus-sc-regular text-black py-10 text-2xl md:text-3xl lg:text-4xl text-center md:text-left">
         Edit Offenses
