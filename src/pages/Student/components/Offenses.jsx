@@ -37,7 +37,7 @@ const Offenses = () => {
       // Let's grab all of the offenses
       const { data: offenses_return, error: error_offenses_return } = await supabase
         .from("Offenses_Occured")
-        .select("*, admin (adminName), List_of_Offenses (offenseName)")
+        .select("*, List_of_Offenses (offenseName)")
         .eq("studentNumber", studentNum);
       
       if (error_offenses_return) {
@@ -85,7 +85,7 @@ const Offenses = () => {
               offensesList.map((offense, index) => (
                 <tr key={index} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2">{offense.timestamp}</td>
-                  <td className="px-4 py-2">{offense.admin?.adminName || "Unknown"}</td>
+                  <td className="px-4 py-2">{offense.adminName || "Unknown"}</td>
                   <td className="px-4 py-2">{offense.List_of_Offenses?.offenseName || "Unknown"}</td>
                 </tr>
               ))
