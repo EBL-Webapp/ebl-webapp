@@ -4,7 +4,7 @@ import Loading from '../../../components/Loading'
 import PaginationControls from '../../../components/PaginationControls'
 import StudentFullInfo from '../../../components/StudentFullInfo'
 import TransientFullInfo from '../../../components/TransientFullInfo'
-
+import { fetchColumnValue } from './../../../fetchColumnValue';
 
 function AdminPage_editRoles() {
 
@@ -24,127 +24,164 @@ function AdminPage_editRoles() {
     setCurrentPage(data)
   }
 
-  const retrieve_data = async () => {
-    //Let's retrieve the unapproved students
-    const {data, error, count} = await supabase.from("all_requests_summary").select("*", {count : "exact"}).eq("request_status_boolean", false).range(from, to);
-    if(error && error.message){
-      console.log("There was an error in retrieving the requests: ", error.messsage);
-    }
-    setTotalRows(count);
-    setRows(data);
-    console.log(data);
+const retrieve_data = async () => {
+  try {
+    const { data, error, count } = await supabase
+      .from("all_requests_summary")
+      .select("*", { count: "exact" })
+      .eq("request_status_boolean", false)
+      .range(from, to);
+    
+    if (error) throw error;
+    
+    setTotalRows(count || 0);
+    setRows(data || []);
+  } catch (error) {
+    console.error("Error retrieving requests:", error.message);
+    setRows([]);
+    setTotalRows(0);
+  } finally {
     setLoad(false);
   }
+};
 
-  const handleDeleteAdmin = async (id) => {
-    const admin_rows = adminRows.filter((row) => {
-      return row.adminID !== id
-    })
+const handleDeleteAdmin = async (id) => {
+  try {
+    // Optimistically update UI
+    const filteredRows = adminRows.filter(row => row.adminID !== id);
+    setAdminRows(filteredRows);
 
-    setAdminRows(admin_rows);
-
-    const {data, error} = await supabase
+    const { error } = await supabase
       .from('admin')
       .delete()
-      .eq('adminID', id)
+      .eq('adminID', id);
 
-    if(error){
-      console.log("There was an error in deleting the admin: ", error.message);
-      return;
-    }
-
-    console.log("This should have deleted")
-    console.log("Database data: ", data);
+    if (error) throw error;
+    
+    console.log("Admin deleted successfully");
+  } catch (error) {
+    console.error("Error deleting admin:", error.message);
+    // Revert UI on error
+    await getAdmins();
   }
+};
 
-  const handleAccept = async (id, type) => {
-    //In accepting, there are three types the student, admin and transient
+const handleAccept = async (id, type) => {
+  try {
+    // Optimistically update UI
+    const filteredRows = rows.filter(row => row.original_entity_id !== id);
+    setRows(filteredRows);
 
-    //Let's update the UI first
-    const new_rows = rows.filter((row) => {
-      return row.original_entity_id !== id;
-    })
-    setRows(new_rows);
+    let error;
 
-    if(type == 'transient'){
-
-      const {error} = await supabase.from('Transient').update({
-        isAccepted : true
-      }).eq("transientID", id);
-      if(error){
-        console.log("There was an error in approving the Transient's role: ", error.message);
-        return;
+    if (type === 'transient') {
+      const result = await supabase
+        .from('Transient')
+        .update({ isAccepted: true })
+        .eq("transientID", id);
+      error = result.error;
+      
+    } else if (type === 'student') {
+      const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
+      
+      if (!studentNumber) {
+        throw new Error("Student number not found for the given userID");
       }
 
-    } else if(type == 'student'){
-
-      const {error} = await supabase
+      const result = await supabase
         .from('Students')
-        .update({
-          isAssessed : true
-        })
-        .eq("studentNumber", id);
-
-      if(error){
-        console.log("There was an error in approving the student's role: ", error.message);
-        return;
-      }
-
-    } else { //Assuming that this is admin
-
-      const {error} = await supabase
+        .update({ isAssessed: true })
+        .eq("studentNumber", studentNumber);
+      error = result.error;
+      
+    } else if (type === 'admin') {
+      const result = await supabase
         .from("admin")
-        .update({
-          isAccepted : true
-        })
-        .eq("adminID", id);
-
-      if(error){
-        console.log("There was an error in approving tge admin's role: ", error.message);
-        return;
-      }
+        .update({ isAccepted: true })
+        .eq("userID", id);
+      error = result.error;
+      
+    } else {
+      throw new Error(`Unknown type: ${type}`);
     }
 
+    if (error) throw error;
+    
+    console.log(`${type} approved successfully`);
+  } catch (error) {
+    console.error(`Error approving ${type}:`, error.message);
+    // Revert UI on error
+    await retrieve_data();
   }
+};
 
-  const getAdmins = async () => {
+const getAdmins = async () => {
+  try {
+    const session_adminID = localStorage.getItem('adminID');
 
-    const session_adminID = localStorage.getItem('adminID')
-
-    const {data, error} = await supabase
+    const { data, error } = await supabase
       .from('admin')
-      .select('adminName, email, adminID')
+      .select('adminName, email, adminID, userID')
       .neq('adminID', session_adminID)
-      .eq('isAccepted', true)
+      .eq('isAccepted', true);
 
-    if(error){
-      console.log("There was an error in getting the admins: ", error.message);
-      return;
-    }
+    if (error) throw error;
 
-    setAdminRows(data);
-    console.log("Please delete me: ", data);
+    setAdminRows(data || []);
+  } catch (error) {
+    console.error("Error fetching admins:", error.message);
+    setAdminRows([]);
   }
+};
 
-  const handleDelete= async (id, type) => {
+const handleDelete = async (id, type) => {
+  try {
+    // Optimistically update UI
+    const filteredRows = rows.filter(row => row.original_entity_id !== id);
+    setRows(filteredRows);
 
-    const new_rows = rows.filter((row) => {
-        return row.original_entity_id !== id
-      })
-    setRows(new_rows);
+    let error;
 
-    if (type === 'student'){
-      const {error} = await supabase
+    if (type === 'student') {
+      const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
+      
+      if (!studentNumber) {
+        throw new Error("Student number not found for the given userID");
+      }
+
+      const result = await supabase
         .from('Students')
         .delete()
-        .eq("studentNumber", id)
-
-      if(error){
-        console.log("There was an error in deleting this row: ", error.message);
-        return;
-      }
+        .eq("studentNumber", studentNumber);
+      error = result.error;
+      
+    } else if (type === 'transient') {
+      const result = await supabase
+        .from('Transient')
+        .delete()
+        .eq("transientID", id);
+      error = result.error;
+      
+    } else if (type === 'admin') {
+      const result = await supabase
+        .from('admin')
+        .delete()
+        .eq("userID", id);
+      error = result.error;
+      
+    } else {
+      throw new Error(`Unknown type: ${type}`);
     }
+
+    if (error) throw error;
+    
+    console.log(`${type} deleted successfully`);
+  } catch (error) {
+    console.error(`Error deleting ${type}:`, error.message);
+    // Revert UI on error
+    await retrieve_data();
   }
+};
 
   useEffect(() => {
 
@@ -161,8 +198,25 @@ function AdminPage_editRoles() {
   }, [currentPage])
 
   // This function will be called by the View button
-  const handleViewStudentInfo = (studentId) => {
-    setSelectedStudentId(studentId);
+  const handleViewStudentInfo = async (studentId) => {
+    // First convert the UUID to studentNumber
+    const actualStudentNumber = await fetchColumnValue(
+      "Students", 
+      "userID", 
+      studentId, 
+      "studentNumber"
+    );
+    
+    console.log("Original ID:", studentId);
+    console.log("Actual Student Number:", actualStudentNumber);
+    
+    // Then set the state with the correct studentNumber
+    if (actualStudentNumber) {
+      setSelectedStudentId(actualStudentNumber);
+    } else {
+      console.error("Could not find student number for ID:", studentId);
+      // Optionally show an error message to the user
+    }
   }
 
   // This function will be passed to the StudentFullInfo component to close the modal
@@ -222,7 +276,7 @@ function AdminPage_editRoles() {
                             </button>
                             {row.requester_type === 'student' ?
                                 <button
-                                    onClick={() => setSelectedStudentId(row.original_entity_id)} // Set student ID for StudentFullInfo
+                                    onClick={() => handleViewStudentInfo(row.original_entity_id)} // Set student ID for StudentFullInfo
                                     className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
                                     View
                                 </button>

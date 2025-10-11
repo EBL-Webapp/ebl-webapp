@@ -2,6 +2,55 @@ import { useEffect, useState } from "react";
 import { Download, Upload, FileDown, Trash2, RotateCcw, AlertCircle, FileText } from "lucide-react";
 import supabase from "../../../supabase_client";
 
+// Custom Confirmation Modal Component (to replace window.confirm)
+const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4 text-black">
+        <p className="text-lg font-semibold mb-4">{message}</p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-[#4E0303] text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Custom Message Modal Component (to replace alert)
+const MessageModal = ({ isOpen, message, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4 text-black">
+        <p className="text-lg font-semibold mb-4">{message}</p>
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-[#114516] text-white rounded-md hover:bg-[#1e6a23] transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 export default function StudentsArchive() {
   const [studentList, setStudentList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -10,16 +59,25 @@ export default function StudentsArchive() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  
+
   // Temporary storage for imported data (in browser memory only)
   const [importedStudentsData, setImportedStudentsData] = useState(null);
   const [importedStudents, setImportedStudents] = useState([]);
   const [importSearchTerm, setImportSearchTerm] = useState("");
 
+  // Confirmation modal states
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmAction, setConfirmAction] = useState(() => {});
+
+  // Message modal states
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState('');
+
   // All tables that need to be included in export/import
   const relatedTables = [
     'Acknowledgemet_of_Accountability_Form',
-    'Application_for_Dorm_Accomodation', 
+    'Application_for_Dorm_Accomodation',
     'Designated_Guardians',
     'Information_and_Instruction_Sheet',
     'Offenses_Occured',
@@ -30,13 +88,27 @@ export default function StudentsArchive() {
     'guardianInformation',
     'signatureTable'
   ];
-  
+
+  // Helper function to show confirmation modal
+  const showConfirm = (message, action) => {
+    setConfirmMessage(message);
+    setConfirmAction(() => action); // Store the action to be executed
+    setIsConfirmModalOpen(true);
+  };
+
+  // Helper function to show message modal
+  const showMessage = (message) => {
+    setMessageContent(message);
+    setIsMessageModalOpen(true);
+  };
+
   // Filter current archived students
   const filteredStudents = studentList.filter(student => {
-    const fullName = student.safe_users?.full_name?.toLowerCase() || "";
+    // Changed from safe_users.full_name to studentName
+    const fullName = student.studentName?.toLowerCase() || "";
     const studentNumber = student.studentNumber?.toLowerCase() || "";
     const searchLower = searchTerm.toLowerCase();
-    
+
     return fullName.includes(searchLower) || studentNumber.includes(searchLower);
   });
 
@@ -45,20 +117,21 @@ export default function StudentsArchive() {
     const fullName = student.studentName?.toLowerCase() || "";
     const studentNumber = student.studentNumber?.toLowerCase() || "";
     const searchLower = importSearchTerm.toLowerCase();
-    
+
     return fullName.includes(searchLower) || studentNumber.includes(searchLower);
   });
 
   const getStudents = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
+      // Removed safe_users from select query
       const { data, error } = await supabase
         .from("Students")
-        .select("*, safe_users (email, full_name)")
+        .select("*") // Select all columns from Students table
         .eq("isArchived", true);
-      
+
       if (error) {
         console.log("Error getting the students: ", error.message);
         setError(error.message);
@@ -86,12 +159,12 @@ export default function StudentsArchive() {
         .eq("isArchived", true);
 
       if (studentsError) {
-        alert(`Error fetching students: ${studentsError.message}`);
+        showMessage(`Error fetching students: ${studentsError.message}`);
         return;
       }
 
       if (!students || students.length === 0) {
-        alert("No archived students found to export");
+        showMessage("No archived students found to export");
         return;
       }
 
@@ -128,7 +201,7 @@ export default function StudentsArchive() {
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: 'application/json'
       });
-      
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -138,10 +211,10 @@ export default function StudentsArchive() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      alert(`Successfully exported ${students.length} archived students and their related data!`);
+      showMessage(`Successfully exported ${students.length} archived students and their related data!`);
     } catch (err) {
       console.error("Export error:", err);
-      alert("Failed to export student data. Please try again.");
+      showMessage("Failed to export student data. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -150,9 +223,9 @@ export default function StudentsArchive() {
   // Handle file drop/upload to temporary storage
   const handleFileUpload = async (file) => {
     if (!file) return;
-    
+
     if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-      alert('Please upload a valid JSON file');
+      showMessage('Please upload a valid JSON file');
       return;
     }
 
@@ -160,21 +233,21 @@ export default function StudentsArchive() {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      
+
       // Validate file structure
       if (!data.students || !data.relatedData || !data.version) {
-        alert('Invalid file format. Please upload a valid student backup file.');
+        showMessage('Invalid file format. Please upload a valid student backup file.');
         return;
       }
 
       // Store in browser memory (not in Supabase)
       setImportedStudentsData(data);
       setImportedStudents(data.students);
-      
-      alert(`Successfully loaded ${data.students.length} students into temporary storage.\n\nThese students are temporarily stored in your browser and will NOT be added to the database until you specifically click "Unarchive" for each student.`);
+
+      showMessage(`Successfully loaded ${data.students.length} students into temporary storage.\n\nThese students are temporarily stored in your browser and will NOT be added to the database until you specifically click "Unarchive" for each student.`);
     } catch (err) {
       console.error("Import error:", err);
-      alert('Failed to read file. Please ensure it is a valid JSON backup file.');
+      showMessage('Failed to read file. Please ensure it is a valid JSON backup file.');
     } finally {
       setIsImporting(false);
     }
@@ -184,139 +257,138 @@ export default function StudentsArchive() {
   const handleUnarchiveImported = async (studentNumber) => {
     if (!importedStudentsData) return;
 
-    const confirmRestore = window.confirm(
-      `Are you sure you want to unarchive and restore this student to the active database?\n\nThis will permanently add the student and all their related records back to the system.`
-    );
-    
-    if (!confirmRestore) return;
-
-    try {
-      // Find the student in imported data
-      const student = importedStudentsData.students.find(s => s.studentNumber === studentNumber);
-      if (!student) {
-        alert('Student not found in imported data');
-        return;
-      }
-
-      // Set student as not archived before inserting
-      const studentToInsert = { ...student, isArchived: false };
-      delete studentToInsert.safe_users; // Remove joined data
-
-      // Insert student record
-      const { error: studentError } = await supabase
-        .from('Students')
-        .insert([studentToInsert]);
-
-      if (studentError) {
-        alert(`Failed to restore student: ${studentError.message}`);
-        return;
-      }
-
-      // Insert related data for each table
-      for (const table of relatedTables) {
-        const tableData = importedStudentsData.relatedData[table] || [];
-        const studentTableData = tableData.filter(record => record.studentNumber === studentNumber);
-        
-        if (studentTableData.length > 0) {
-          const { error: tableError } = await supabase
-            .from(table)
-            .insert(studentTableData);
-
-          if (tableError) {
-            console.warn(`Warning: Could not restore data to ${table}:`, tableError.message);
+    showConfirm(
+      `Are you sure you want to unarchive and restore this student to the active database?\n\nThis will permanently add the student and all their related records back to the system.`,
+      async () => {
+        try {
+          // Find the student in imported data
+          const student = importedStudentsData.students.find(s => s.studentNumber === studentNumber);
+          if (!student) {
+            showMessage('Student not found in imported data');
+            return;
           }
+
+          // Set student as not archived before inserting
+          const studentToInsert = { ...student, isArchived: false };
+          // Removed safe_users from delete as it's not part of the Students table anymore
+          // delete studentToInsert.safe_users; // This line is no longer needed if safe_users is removed from select
+
+          // Insert student record
+          const { error: studentError } = await supabase
+            .from('Students')
+            .insert([studentToInsert]);
+
+          if (studentError) {
+            showMessage(`Failed to restore student: ${studentError.message}`);
+            return;
+          }
+
+          // Insert related data for each table
+          for (const table of relatedTables) {
+            const tableData = importedStudentsData.relatedData[table] || [];
+            const studentTableData = tableData.filter(record => record.studentNumber === studentNumber);
+
+            if (studentTableData.length > 0) {
+              const { error: tableError } = await supabase
+                .from(table)
+                .insert(studentTableData);
+
+              if (tableError) {
+                console.warn(`Warning: Could not restore data to ${table}:`, tableError.message);
+              }
+            }
+          }
+
+          // Remove from imported students list
+          setImportedStudents(prev => prev.filter(s => s.studentNumber !== studentNumber));
+
+          // Refresh the main student list to show the unarchived student is no longer in archive
+          await getStudents();
+
+          showMessage('Student successfully unarchived and restored to the active database!');
+        } catch (err) {
+          console.error('Restore error:', err);
+          showMessage('Failed to restore student. Please try again.');
         }
       }
-
-      // Remove from imported students list
-      setImportedStudents(prev => prev.filter(s => s.studentNumber !== studentNumber));
-      
-      // Refresh the main student list to show the unarchived student is no longer in archive
-      await getStudents();
-
-      alert('Student successfully unarchived and restored to the active database!');
-    } catch (err) {
-      console.error('Restore error:', err);
-      alert('Failed to restore student. Please try again.');
-    }
+    );
   };
 
   // Remove student from temporary imported list
   const handleRemoveImported = (studentNumber) => {
-    const confirmRemove = window.confirm(
-      'Remove this student from the temporary list?\n\nThis will only remove them from your browser storage, not from the database.'
+    showConfirm(
+      'Remove this student from the temporary list?\n\nThis will only remove them from your browser storage, not from the database.',
+      () => {
+        setImportedStudents(prev => prev.filter(s => s.studentNumber !== studentNumber));
+      }
     );
-    
-    if (confirmRemove) {
-      setImportedStudents(prev => prev.filter(s => s.studentNumber !== studentNumber));
-    }
   };
 
   // Clear all imported data
   const handleClearImported = () => {
-    const confirmClear = window.confirm(
-      'Clear all temporarily imported students?\n\nThis will remove all imported data from your browser storage.'
+    showConfirm(
+      'Clear all temporarily imported students?\n\nThis will remove all imported data from your browser storage.',
+      () => {
+        setImportedStudentsData(null);
+        setImportedStudents([]);
+        setImportSearchTerm("");
+      }
     );
-    
-    if (confirmClear) {
-      setImportedStudentsData(null);
-      setImportedStudents([]);
-      setImportSearchTerm("");
-    }
   };
 
   const handleDelete = async (studentNumber) => {
-    const reallyDelete = window.confirm(
-      "Are you sure you want to delete this student and ALL related records?\nThis cannot be undone."
-    );
-    if (!reallyDelete) return;
+    showConfirm(
+      "Are you sure you want to delete this student and ALL related records?\nThis cannot be undone.",
+      async () => {
+        const dependentTables = [
+          'Acknowledgemet_of_Accountability_Form',
+          'Application_for_Dorm_Accomodation',
+          'Designated_Guardians',
+          'Information_and_Instruction_Sheet',
+          'Offenses_Occured',
+          'Overnight_Excuse',
+          'appliance_per_student',
+          'studentCharge',
+          'studentPayment',
+          'guardianInformation'
+        ];
 
-    const dependentTables = [
-      'Acknowledgemet_of_Accountability_Form',
-      'Application_for_Dorm_Accomodation',
-      'Designated_Guardians',
-      'Information_and_Instruction_Sheet',
-      'Offenses_Occured',
-      'Overnight_Excuse',
-      'appliance_per_student',
-      'studentCharge',
-      'studentPayment',
-      'guardianInformation'
-    ];
+        try {
+          for (const table of dependentTables) {
+            const { error: depError } = await supabase
+              .from(table)
+              .delete()
+              .eq('studentNumber', studentNumber);
 
-    try {
-      for (const table of dependentTables) {
-        const { error: depError } = await supabase
-          .from(table)
-          .delete()
-          .eq('studentNumber', studentNumber);
+            if (depError) {
+              console.error(`Error deleting from ${table}:`, depError.message);
+              showMessage(`Failed to delete related records in ${table}: ${depError.message}`);
+              return;
+            }
+          }
 
-        if (depError) {
-          console.error(`Error deleting from ${table}:`, depError.message);
-          alert(`Failed to delete related records in ${table}: ${depError.message}`);
-          return;
+          const { error: studentError } = await supabase
+            .from('Students')
+            .delete()
+            .eq('studentNumber', studentNumber);
+
+          if (studentError) {
+            console.error('Error deleting student:', studentError.message);
+            showMessage(`Failed to delete student: ${studentError.message}`);
+            return;
+          }
+
+          setStudentList(prev =>
+            prev.filter(s => s.studentNumber !== studentNumber)
+          );
+          showMessage('Student and all related records deleted successfully!');
+
+        } catch (err) {
+          console.error('Unexpected error:', err);
+          showMessage('An unexpected error occurred while deleting student');
         }
       }
-
-      const { error: studentError } = await supabase
-        .from('Students')
-        .delete()
-        .eq('studentNumber', studentNumber);
-
-      if (studentError) {
-        console.error('Error deleting student:', studentError.message);
-        alert(`Failed to delete student: ${studentError.message}`);
-        return;
-      }
-
-      setStudentList(prev =>
-        prev.filter(s => s.studentNumber !== studentNumber)
-      );
-
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert('An unexpected error occurred while deleting student');
-    }
+    );
   };
 
   const handleUpdate = async (studentNumber) => {
@@ -330,16 +402,17 @@ export default function StudentsArchive() {
 
       if (error) {
         console.log("There was an error in updating: ", error.message);
-        alert(`Failed to unarchive: ${error.message}`);
+        showMessage(`Failed to unarchive: ${error.message}`);
         return;
       }
-      
-      setStudentList(prevList => 
+
+      setStudentList(prevList =>
         prevList.filter(student => student.studentNumber !== studentNumber)
       );
+      showMessage('Student unarchived successfully!');
     } catch (err) {
       console.error("Error in update operation:", err);
-      alert("Failed to unarchive student");
+      showMessage("Failed to unarchive student");
     }
   };
 
@@ -376,6 +449,19 @@ export default function StudentsArchive() {
 
   return (
     <div className="p-4 md:p-8 zain-regular">
+      {/* Custom Modals */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        message={confirmMessage}
+        onConfirm={() => { confirmAction(); setIsConfirmModalOpen(false); }}
+        onCancel={() => setIsConfirmModalOpen(false)}
+      />
+      <MessageModal
+        isOpen={isMessageModalOpen}
+        message={messageContent}
+        onClose={() => setIsMessageModalOpen(false)}
+      />
+
       {/* Export/Import Controls */}
       <div className="mb-6 bg-gray-50 p-4 rounded-lg">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -401,8 +487,8 @@ export default function StudentsArchive() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-            isDragOver 
-              ? 'border-blue-500 bg-blue-50' 
+            isDragOver
+              ? 'border-blue-500 bg-blue-50'
               : 'border-gray-300 bg-gray-50 hover:border-gray-400'
           } ${isImporting ? 'opacity-50' : ''}`}
         >
@@ -470,6 +556,7 @@ export default function StudentsArchive() {
                 <tr>
                   <th className="text-left px-4 py-3 text-yellow-800">Student Name</th>
                   <th className="text-left px-4 py-3 text-yellow-800">Student Number</th>
+                  {/* Removed Email column as it was likely from safe_users */}
                   <th className="text-left px-4 py-3 text-yellow-800">Status</th>
                   <th className="text-center px-4 py-3 text-yellow-800">Action</th>
                 </tr>
@@ -486,14 +573,14 @@ export default function StudentsArchive() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex justify-center items-center space-x-2">
-                        <button 
-                          onClick={() => handleUnarchiveImported(student.studentNumber)} 
+                        <button
+                          onClick={() => handleUnarchiveImported(student.studentNumber)}
                           className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors"
                         >
                           Unarchive to Database
                         </button>
-                        <button 
-                          onClick={() => handleRemoveImported(student.studentNumber)} 
+                        <button
+                          onClick={() => handleRemoveImported(student.studentNumber)}
                           className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors"
                         >
                           Remove
@@ -511,7 +598,7 @@ export default function StudentsArchive() {
       {/* Current Archived Students Section */}
       <div>
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Currently Archived Students</h3>
-        
+
         {/* Search Section */}
         <div className="grid grid-cols-1 gap-y-4 gap-x-12 mb-6">
           <div className="flex flex-row gap-2 flex-1">
@@ -531,7 +618,7 @@ export default function StudentsArchive() {
             Error loading students: {error}
           </div>
         )}
-        
+
         {/* Students Table */}
         <div className="overflow-x-auto border border-gray-300 rounded-2xl">
           <table className="min-w-full border border-gray-300 rounded-2xl overflow-hidden text-base sm:text-lg">
@@ -539,7 +626,7 @@ export default function StudentsArchive() {
               <tr>
                 <th className="text-left px-4 py-3">Student Name</th>
                 <th className="text-left px-4 py-3">Student Number</th>
-                <th className="text-left px-4 py-3">Email</th>
+                {/* Removed Email column as it was likely from safe_users */}
                 <th className="text-center px-4 py-3">Action</th>
               </tr>
             </thead>
@@ -551,19 +638,20 @@ export default function StudentsArchive() {
               ) : filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
                   <tr key={student.studentNumber} className="border-t border-gray-200 text-sm sm:text-base">
-                    <td className="px-4 py-3">{student.safe_users?.full_name || "No name"}</td>
+                    {/* Changed from student.safe_users?.full_name to student.studentName */}
+                    <td className="px-4 py-3">{student.studentName || "No name"}</td>
                     <td className="px-4 py-3">{student.studentNumber || "N/A"}</td>
-                    <td className="px-4 py-3">{student.safe_users?.email || "No email"}</td>
+                    {/* Removed student.safe_users?.email as it's no longer available */}
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col sm:flex-row justify-center items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button 
-                          onClick={() => handleUpdate(student.studentNumber)} 
+                        <button
+                          onClick={() => handleUpdate(student.studentNumber)}
                           className="bg-[#114516]/90 text-white w-24 px-3 py-1 rounded-2xl hover:bg-green-800"
                         >
                           Unarchive
                         </button>
-                        <button 
-                          onClick={() => handleDelete(student.studentNumber)} 
+                        <button
+                          onClick={() => handleDelete(student.studentNumber)}
                           className="bg-[#4E0303]/90 text-white w-24 px-3 py-1 rounded-2xl hover:bg-red-900"
                         >
                           Delete

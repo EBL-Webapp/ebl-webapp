@@ -80,16 +80,25 @@ function StudentSignIn() {
         return;
     }
 
+    // Validation: Check if all required checkboxes are checked
+    if (!formData.studentConfirmation) {
+        alert("Please confirm your student application by checking the student confirmation box.");
+        return;
+    }
+    if (!formData.parentConfirmation) {
+        alert("Please confirm parent/guardian authorization by checking the parent/guardian confirmation box.");
+        return;
+    }
+
     try {
         // Insert into Students table
-        // Changed: Added 'email' field here
         const { error: insertionError } = await supabase
             .from('Students')
             .insert([{
                 'userID': currentSession.user.id,
                 'studentNumber': formData.studentId,
                 'studentName': formData.name,
-                'email': formData.email, // Email address is now saved in the Students table
+                'email': formData.email,
             }]);
 
         if (insertionError) {
@@ -98,7 +107,6 @@ function StudentSignIn() {
         }
 
         // Insert into Application_for_Dorm_Accomodation table
-        // Changed: Removed 'emailAddress' from here
         const { error: error_Application_for_Dorm_Accomodation } = await supabase
             .from("Application_for_Dorm_Accomodation")
             .insert([{
@@ -115,7 +123,6 @@ function StudentSignIn() {
                 "religion": formData.religion,
                 "civilStatus": formData.civilStatus,
                 "nationality": formData.nationality,
-                // "emailAddress": formData.email, // This line has been removed
                 "homeAddress": formData.homeAddress,
                 "contactNo": formData.contact,
                 "isStayedInAnyDormitory": formData.stayedBefore === "yes",
@@ -278,85 +285,24 @@ function StudentSignIn() {
             console.log('No appliances to declare.');
         }
 
-        // Insert Signatures with corrected field mappings
+        // Insert Signatures - Consolidated to remove redundancy
         const signatures = [
-            { // Privacy Notice
+            // Student Confirmation
+            {
                 userID: currentSession.user.id,
-                formName: "Privacy Form",
-                isAgreed: formData.privacyNameSign,
+                formName: "Student Application SignUp",
+                isAgreed: "CONFIRMED",
                 role: "student",
                 expirationDate: formData.accommodationUntil
             },
-            { // Application Form
+            // Parent/Guardian Confirmation
+            {
                 userID: currentSession.user.id,
-                formName: "Application Form",
-                isAgreed: formData.studentSignature_applicationForm,
-                role: "student",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Information and Instruction Sheet
-                userID: currentSession.user.id,
-                formName: "Information and Instruction Sheet",
-                isAgreed: formData.infoParentName,
+                formName: "Student Application SignUp",
+                isAgreed: "CONFIRMED",
                 role: "parent",
                 expirationDate: formData.accommodationUntil
-            },
-            { // Designated Guardians - Student
-                userID: currentSession.user.id,
-                formName: "Designated Guardians",
-                isAgreed: formData.designatedGuardians_studentSignature,
-                role: "student",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Designated Guardians - Parent
-                userID: currentSession.user.id,
-                formName: "Designated Guardians",
-                isAgreed: formData.designatedGuardians_parentSignature,
-                role: "parent",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Appliance Declaration - Parent
-                userID: currentSession.user.id,
-                formName: "Appliance Declaration",
-                isAgreed: formData.applianceDeclaration_parentSignature,
-                role: "parent",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Appliance Declaration - Student
-                userID: currentSession.user.id,
-                formName: "Appliance Declaration",
-                isAgreed: formData.applianceDeclaration_studentSignature,
-                role: "student",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Dormitory Agreement 1 - Student
-                userID: currentSession.user.id,
-                formName: "Dormitory Agreement 1",
-                isAgreed: formData.agreementResidentSign,
-                role: "student",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Dormitory Agreement 1 - Parent
-                userID: currentSession.user.id,
-                formName: "Dormitory Agreement 1",
-                isAgreed: formData.agreementParentSign,
-                role: "parent",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Dormitory Agreement 2 - Student
-                userID: currentSession.user.id,
-                formName: "Dormitory Agreement 2",
-                isAgreed: formData.signatureResident_dormAgreement,
-                role: "student",
-                expirationDate: formData.accommodationUntil
-            },
-            { // Dormitory Agreement 2 - Parent
-                userID: currentSession.user.id,
-                formName: "Dormitory Agreement 2",
-                isAgreed: formData.signatureParent_dormAgreement,
-                role: "parent",
-                expirationDate: formData.accommodationUntil
-            },
+            }
         ];
 
         const { error: error_insertingSignatures } = await supabase.from("signatureTable").insert(signatures);
@@ -449,10 +395,6 @@ function StudentSignIn() {
             </div>
             <div><input name="lengthOfStay" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Length of Stay" value={formData.lengthOfStay || ''} /></div>
             <div><input name="previousLocation" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Where?" value={formData.previousLocation || ''} /></div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-sm"><strong>Sign by typing your name.</strong> You agree that you certify to the best of you knowledge as to the accuracy of the information supplied herein.</label>
-            <input required name="studentSignature_applicationForm" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Type your full name here" value={formData.studentSignature_applicationForm || ''} />
           </div>
         </div>
       </fieldset>
@@ -578,25 +520,14 @@ function StudentSignIn() {
             value={formData.additionalInstructions || ''}
           />
         </div>
-
-        {/* Parent Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-sm">Parent's Printed Name, typing your name you assure that the typed information is true.</label>
-            <input
-              type="text"
-              name="infoParentName"
-              onChange={handleChange}
-              className="border rounded p-2 w-full"
-              value={formData.infoParentName || ''}
-            />
-          </div>
-        </div>
       </fieldset>
 
       {/* Page 3: Designated Guardians */}
       <fieldset className="border p-4 rounded">
         <legend className="font-semibold">Designated Guardian(s) in Davao City</legend>
+        <p className="text-sm mb-4 text-gray-600">
+          Please provide information about your designated guardians in Davao City who can be contacted in case of emergency.
+        </p>
         {[1, 2].map((n) => (
           <div key={n} className="mb-4">
             <h4 className="font-medium">Guardian {n}</h4>
@@ -608,23 +539,13 @@ function StudentSignIn() {
             </div>
           </div>
         ))}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm">Student’s Name and Signature</label>
-            <input name="designatedGuardians_studentSignature" onChange={handleChange} className="border rounded p-2 w-full" value={formData.designatedGuardians_studentSignature || ''} />
-          </div>
-          <div>
-            <label className="block text-sm">Parent’s/Guardian’s Name and Signature</label>
-            <input name="designatedGuardians_parentSignature" onChange={handleChange} className="border rounded p-2 w-full" value={formData.designatedGuardians_parentSignature || ''} />
-          </div>
-        </div>
       </fieldset>
 
       {/* Page 4: Appliance Declaration */}
       <fieldset className="border p-4 rounded">
         <legend className="font-semibold">Appliance Declaration</legend>
         <p className="text-sm mb-4 text-gray-600">
-          Please list all appliances you will bring to the dormitory.
+          Please list all electrical appliances you will bring to the dormitory. This is for safety and inventory purposes.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-bold mb-2">
           <span>Quantity</span>
@@ -669,16 +590,6 @@ function StudentSignIn() {
             />
           </div>
         ))}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm">Student’s Name and Signature</label>
-            <input name="applianceDeclaration_studentSignature" onChange={handleChange} className="border rounded p-2 w-full" value={formData.applianceDeclaration_studentSignature || ''} />
-          </div>
-          <div>
-            <label className="block text-sm">Parent’s/Guardian’s Name and Signature</label>
-            <input name="applianceDeclaration_parentSignature" onChange={handleChange} className="border rounded p-2 w-full" value={formData.applianceDeclaration_parentSignature || ''} />
-          </div>
-        </div>
       </fieldset>
 
       {/* Page 5: Dormitory Agreement - Part 1 */}
@@ -691,16 +602,8 @@ function StudentSignIn() {
         <div className="space-y-2 text-sm text-gray-700">
           <p>I hereby certify that I have read and understood the rules and regulations of the Dormitory and that I shall abide by them. I further understand that failure to comply with these rules and regulations may result in the termination of my stay in the Dormitory.</p>
           <p>I also certify that all information supplied in this application is true and correct to the best of my knowledge. Any false information given will be sufficient cause for the cancellation of my application or immediate dismissal from the Dormitory.</p>
-        </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm">Resident’s Name and Signature</label>
-            <input name="agreementResidentSign" onChange={handleChange} className="border rounded p-2 w-full" value={formData.agreementResidentSign || ''} />
-          </div>
-          <div>
-            <label className="block text-sm">Parent’s/Guardian’s Name and Signature</label>
-            <input name="agreementParentSign" onChange={handleChange} className="border rounded p-2 w-full" value={formData.agreementParentSign || ''} />
-          </div>
+          <p>I understand that the dormitory management has the right to inspect my room for health, safety, and security purposes. I agree to pay all fees on time and acknowledge my responsibility for any damages to dormitory property during my stay.</p>
+          <p>I understand that the dormitory is not responsible for personal belongings lost or damaged due to theft, fire, or other causes beyond its control. I agree to vacate the dormitory premises at the end of the accommodation period or upon termination of my stay.</p>
         </div>
       </fieldset>
 
@@ -708,29 +611,19 @@ function StudentSignIn() {
       <fieldset className="border p-4 rounded">
         <legend className="font-semibold">Dormitory Agreement - Part 2</legend>
         <p className="text-sm mb-4 text-gray-600">
-          Further agreements regarding your stay.
+          Additional terms and conditions for dormitory accommodation.
         </p>
         {/* Content of Dormitory Agreement Part 2 */}
         <div className="space-y-2 text-sm text-gray-700">
-          <p>I understand and agree that the Dormitory Management reserves the right to inspect my room at any time for health, safety, and security purposes.</p>
-          <p>I agree to pay all dormitory fees and charges on time. Failure to do so may result in penalties or termination of my accommodation.</p>
-          <p>I acknowledge that I am responsible for any damages caused to the dormitory property during my stay and agree to pay for such damages.</p>
-          <p>I understand that the dormitory is not responsible for personal belongings lost or damaged due to theft, fire, or other causes beyond its control.</p>
-          <p>I agree to vacate the dormitory premises at the end of the accommodation period or upon termination of my stay, whichever comes first.</p>
+          <p>I agree to respect the rights and privacy of other dormitory residents and to maintain cleanliness and orderliness in common areas and in my assigned room.</p>
+          <p>I understand that visitors must be registered and that overnight guests are not permitted without prior approval from dormitory management.</p>
+          <p>I acknowledge that the use of prohibited items (including but not limited to illegal drugs, weapons, and unauthorized electrical appliances) is strictly forbidden and may result in immediate dismissal.</p>
+          <p>I agree to participate in fire drills and emergency evacuations and to familiarize myself with safety procedures and emergency exits.</p>
+          <p>I understand that repeated violations of dormitory rules may result in disciplinary action, including suspension or termination of my accommodation privileges.</p>
         </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm">Resident’s Name and Signature</label>
-            <input name="signatureResident_dormAgreement" onChange={handleChange} className="border rounded p-2 w-full" value={formData.signatureResident_dormAgreement || ''} />
-          </div>
-          <div>
-            <label className="block text-sm">Parent’s/Guardian’s Name and Signature</label>
-            <input name="signatureParent_dormAgreement" onChange={handleChange} className="border rounded p-2 w-full" value={formData.signatureParent_dormAgreement || ''} />
-          </div>
-          <div>
-            <label className="block text-sm">Accommodation Period Until</label>
-            <input type="date" name="accommodationUntil" onChange={handleChange} className="border rounded p-2 w-full" value={formData.accommodationUntil || ''} />
-          </div>
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2">Accommodation Period Until</label>
+          <input type="date" name="accommodationUntil" required onChange={handleChange} className="border rounded p-2 w-full" value={formData.accommodationUntil || ''} />
         </div>
       </fieldset>
 
@@ -743,16 +636,86 @@ function StudentSignIn() {
         <div className="space-y-2 text-sm text-gray-700">
           <p>By submitting this form, you agree to the collection and processing of your personal data by the dormitory management for the purpose of dormitory accommodation, record-keeping, and compliance with relevant regulations. Your data will be kept confidential and will not be shared with third parties without your consent, except as required by law.</p>
           <p>You have the right to access, correct, and object to the processing of your personal data. For more information, please contact the dormitory administration.</p>
-        </div>
-        <div className="mt-4">
-          <label className="block text-sm">By typing your name, you acknowledge that you have read and understood the Privacy Notice and consent to the processing of your personal data.</label>
-          <input required name="privacyNameSign" onChange={handleChange} className="border rounded p-2 w-full" placeholder="Type your full name here" value={formData.privacyNameSign || ''} />
+          <p>The information you provide will be stored securely and used solely for the administration of your dormitory accommodation and related services.</p>
         </div>
       </fieldset>
 
-      <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+      {/* Consolidated Confirmation Section */}
+      <fieldset className="border-2 border-blue-500 p-6 rounded bg-blue-50">
+        <legend className="font-bold text-lg text-blue-900">Final Confirmation and Authorization</legend>
+        
+        <div className="space-y-6 mt-4">
+          {/* Student Confirmation */}
+          <div className="bg-white p-4 rounded border border-blue-300">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="studentConfirmation"
+                required
+                onChange={handleChange}
+                className="mt-1 h-5 w-5 border-2 border-gray-300 rounded"
+                checked={formData.studentConfirmation || false}
+              />
+              <div className="flex-1">
+                <span className="text-sm font-semibold text-gray-900 block mb-2">* STUDENT CONFIRMATION (Required)</span>
+                <span className="text-sm text-gray-700">
+                  I, <strong>{formData.name || '[Your Name]'}</strong>, hereby certify and confirm that:
+                  <ul className="list-disc ml-5 mt-2 space-y-1">
+                    <li>All information provided in this application form is true, accurate, and complete to the best of my knowledge.</li>
+                    <li>I have read, understood, and agree to abide by all the rules, regulations, policies, and agreements stated in this dormitory application, including the Information and Instruction Sheet, Designated Guardians information, Appliance Declaration, Dormitory Agreements (Parts 1 and 2), and Privacy Notice.</li>
+                    <li>I understand that providing false or misleading information may result in the cancellation of my application or immediate dismissal from the dormitory.</li>
+                    <li>I acknowledge my responsibility to maintain the dormitory property, respect other residents, and comply with all dormitory policies throughout my stay.</li>
+                    <li>I agree to vacate the dormitory premises at the end of the accommodation period specified ({formData.accommodationUntil || '[Date Not Set]'}) or upon termination of my stay.</li>
+                  </ul>
+                </span>
+              </div>
+            </label>
+          </div>
+
+          {/* Parent/Guardian Confirmation */}
+          <div className="bg-white p-4 rounded border border-blue-300">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="parentConfirmation"
+                required
+                onChange={handleChange}
+                className="mt-1 h-5 w-5 border-2 border-gray-300 rounded"
+                checked={formData.parentConfirmation || false}
+              />
+              <div className="flex-1">
+                <span className="text-sm font-semibold text-gray-900 block mb-2">* PARENT/GUARDIAN CONFIRMATION (Required)</span>
+                <span className="text-sm text-gray-700">
+                  I, as the parent/legal guardian of <strong>{formData.name || '[Student Name]'}</strong>, hereby certify and confirm that:
+                  <ul className="list-disc ml-5 mt-2 space-y-1">
+                    <li>I have reviewed all information provided in this application and confirm its accuracy.</li>
+                    <li>I authorize my child/ward to reside in the dormitory and participate in activities as outlined in the Information and Instruction Sheet.</li>
+                    <li>I have read, understood, and agree to all terms, conditions, rules, regulations, and agreements stated in this application, including the Dormitory Agreements, Designated Guardians authorization, Appliance Declaration, and Privacy Notice.</li>
+                    <li>I understand and accept financial responsibility for dormitory fees, damages caused by my child/ward, and any other charges incurred during their stay.</li>
+                    <li>I authorize the designated guardians listed in this application to act on my behalf in case of emergencies when I cannot be reached.</li>
+                    <li>I acknowledge that the dormitory management has the right to enforce rules and take disciplinary action, including dismissal, if my child/ward violates dormitory policies.</li>
+                    <li>I consent to the collection, processing, and storage of personal data as outlined in the Privacy Notice for dormitory administration purposes.</li>
+                  </ul>
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div className="bg-yellow-50 p-4 rounded border border-yellow-300">
+            <p className="text-sm text-yellow-900">
+              <strong>IMPORTANT:</strong> Both the student and parent/guardian confirmations above are required to submit this application. By checking these boxes, you are providing your electronic signature and agreement to all terms and conditions outlined in this comprehensive dormitory application form.
+            </p>
+          </div>
+        </div>
+      </fieldset>
+
+      <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded w-full text-lg shadow-lg transition-colors">
         Submit Application
       </button>
+
+      <div className="text-center text-xs text-gray-500 mt-4">
+        <p>By submitting this form, you acknowledge that all information provided is accurate and you agree to all terms and conditions.</p>
+      </div>
     </form>
   </div>
   );

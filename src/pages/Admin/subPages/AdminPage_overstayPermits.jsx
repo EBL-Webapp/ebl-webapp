@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import supabase from "../../../supabase_client";
+import Loading from "../../../components/Loading"; // 1. Import the Loading component
 
 function AdminPage_overstayPermits() {
 
@@ -8,82 +9,105 @@ function AdminPage_overstayPermits() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [activeTab, setActiveTab] = useState('approval'); // 'approval' or 'validation'
   const [currentAdminId, setCurrentAdminId] = useState(null);
+  // 2. State for loading status
+  const [isLoading, setIsLoading] = useState(false); 
 
   const fetchPendingApproval = async () => {
-    const { data, error } = await supabase
-      .from("Overnight_Excuse")
-      .select(`
-        *,
-        Students!Overnight_Excuse_studentNumber_fkey (
-          studentName,
-          Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
-            isAllowed_WeekendsWithRelatives_or_guardians,
-            isAllowed_spendOvernightWithFriends_or_dormmates,
-            isAllowed_joinDemonstrations_or_rallies,
-            whatIllnesses,
-            otherAdditionalInstruction,
-            Allowed_ToGoHomeInWeekends,
-            Allowed_ToGoHomeInWeekdays,
-            isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
+    setIsLoading(true); // Show loading
+    try {
+      const { data, error } = await supabase
+        .from("Overnight_Excuse")
+        .select(`
+          *,
+          Students!Overnight_Excuse_studentNumber_fkey (
+            studentName,
+            Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
+              isAllowed_WeekendsWithRelatives_or_guardians,
+              isAllowed_spendOvernightWithFriends_or_dormmates,
+              isAllowed_joinDemonstrations_or_rallies,
+              whatIllnesses,
+              otherAdditionalInstruction,
+              Allowed_ToGoHomeInWeekends,
+              Allowed_ToGoHomeInWeekdays,
+              isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
+            )
           )
-        )
-      `)
-      .is("isApproved", null);
-    
-    if (error) {
-      console.log("Error fetching pending approvals:", error.message);
-      return;
-    }
-    
-    setPendingApproval(data || []);
-    if (data && data.length > 0 && !selectedRequest) {
-      setSelectedRequest(data[0]);
+        `)
+        .is("isApproved", null);
+      
+      if (error) {
+        console.log("Error fetching pending approvals:", error.message);
+        return;
+      }
+      
+      setPendingApproval(data || []);
+      if (data && data.length > 0 && !selectedRequest) {
+        setSelectedRequest(data[0]);
+      }
+    } catch (e) {
+      console.error("An error occurred during fetchPendingApproval:", e);
+    } finally {
+      setIsLoading(false); // Hide loading
     }
   };
 
   const fetchPendingValidation = async () => {
-    const { data, error } = await supabase
-      .from("Overnight_Excuse")
-      .select(`
-        *,
-        Students!Overnight_Excuse_studentNumber_fkey (
-          studentName,
-          Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
-            isAllowed_WeekendsWithRelatives_or_guardians,
-            isAllowed_spendOvernightWithFriends_or_dormmates,
-            isAllowed_joinDemonstrations_or_rallies,
-            whatIllnesses,
-            otherAdditionalInstruction,
-            Allowed_ToGoHomeInWeekends,
-            Allowed_ToGoHomeInWeekdays,
-            isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
+    setIsLoading(true); // Show loading
+    try {
+      const { data, error } = await supabase
+        .from("Overnight_Excuse")
+        .select(`
+          *,
+          Students!Overnight_Excuse_studentNumber_fkey (
+            studentName,
+            Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
+              isAllowed_WeekendsWithRelatives_or_guardians,
+              isAllowed_spendOvernightWithFriends_or_dormmates,
+              isAllowed_joinDemonstrations_or_rallies,
+              whatIllnesses,
+              otherAdditionalInstruction,
+              Allowed_ToGoHomeInWeekends,
+              Allowed_ToGoHomeInWeekdays,
+              isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
+            )
           )
-        )
-      `)
-      .eq("isApproved", true)
-      .is("isValidated", null);
-    
-    if (error) {
-      console.log("Error fetching pending validations:", error.message);
-      return;
+        `)
+        .eq("isApproved", true)
+        .is("isValidated", null);
+      
+      if (error) {
+        console.log("Error fetching pending validations:", error.message);
+        return;
+      }
+      
+      setPendingValidation(data || []);
+    } catch (e) {
+      console.error("An error occurred during fetchPendingValidation:", e);
+    } finally {
+      setIsLoading(false); // Hide loading
     }
-    
-    setPendingValidation(data || []);
   };
 
   // Get current admin info
   const getCurrentAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: adminData, error } = await supabase
-        .from('admin')
-        .select('adminID')
-        .eq('userID', user.id)
-        .single();
-      
-      if (!error && adminData) {
-        setCurrentAdminId(adminData.adminID);
+    setIsLoading(true); // Show loading
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: adminData, error } = await supabase
+          .from('admin')
+          .select('adminID')
+          .eq('userID', user.id)
+          .single();
+        
+        if (!error && adminData) {
+          setCurrentAdminId(adminData.adminID);
+        }
       }
+    } catch (e) {
+      console.error("An error occurred during getCurrentAdmin:", e);
+    } finally {
+      setIsLoading(false); // Hide loading
     }
   };
 
@@ -92,6 +116,8 @@ function AdminPage_overstayPermits() {
       console.log("Admin ID not found");
       return;
     }
+
+    setIsLoading(true); // Show loading
 
     let updateData = {};
     
@@ -114,25 +140,31 @@ function AdminPage_overstayPermits() {
       };
     }
     
-    const { error } = await supabase
-      .from("Overnight_Excuse")
-      .update(updateData)
-      .eq('overnightExcuseID', requestId);
+    try {
+      const { error } = await supabase
+        .from("Overnight_Excuse")
+        .update(updateData)
+        .eq('overnightExcuseID', requestId);
 
-    if (error) {
-      console.log(`Error ${isApproval ? 'approving' : 'validating'} request:`, error.message);
-      return;
-    }
+      if (error) {
+        console.log(`Error ${isApproval ? 'approving' : 'validating'} request:`, error.message);
+        return;
+      }
 
-    // Refresh both lists
-    await fetchPendingApproval();
-    await fetchPendingValidation();
-    
-    // Update selected request if it was the one we just processed
-    if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
-      const updatedList = isApproval ? pendingApproval : pendingValidation;
-      const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
-      setSelectedRequest(nextRequest || null);
+      // Refresh both lists
+      await fetchPendingApproval();
+      await fetchPendingValidation();
+      
+      // Update selected request if it was the one we just processed
+      if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
+        const updatedList = isApproval ? pendingApproval : pendingValidation;
+        const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
+        setSelectedRequest(nextRequest || null);
+      }
+    } catch (e) {
+      console.error("An error occurred during handleApprove:", e);
+    } finally {
+      setIsLoading(false); // Hide loading
     }
   };
 
@@ -141,6 +173,8 @@ function AdminPage_overstayPermits() {
       console.log("Admin ID not found");
       return;
     }
+
+    setIsLoading(true); // Show loading
 
     let updateData = {};
     
@@ -163,25 +197,31 @@ function AdminPage_overstayPermits() {
       };
     }
     
-    const { error } = await supabase
-      .from("Overnight_Excuse")
-      .update(updateData)
-      .eq('overnightExcuseID', requestId);
+    try {
+      const { error } = await supabase
+        .from("Overnight_Excuse")
+        .update(updateData)
+        .eq('overnightExcuseID', requestId);
 
-    if (error) {
-      console.log(`Error denying request:`, error.message);
-      return;
-    }
+      if (error) {
+        console.log(`Error denying request:`, error.message);
+        return;
+      }
 
-    // Refresh both lists
-    await fetchPendingApproval();
-    await fetchPendingValidation();
-    
-    // Update selected request if it was the one we just processed
-    if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
-      const updatedList = isApproval ? pendingApproval : pendingValidation;
-      const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
-      setSelectedRequest(nextRequest || null);
+      // Refresh both lists
+      await fetchPendingApproval();
+      await fetchPendingValidation();
+      
+      // Update selected request if it was the one we just processed
+      if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
+        const updatedList = isApproval ? pendingApproval : pendingValidation;
+        const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
+        setSelectedRequest(nextRequest || null);
+      }
+    } catch (e) {
+      console.error("An error occurred during handleDeny:", e);
+    } finally {
+      setIsLoading(false); // Hide loading
     }
   };
 
@@ -196,8 +236,13 @@ function AdminPage_overstayPermits() {
 
   useEffect(() => {
     getCurrentAdmin();
-    fetchPendingApproval();
-    fetchPendingValidation();
+    // Use a single function to fetch all data to manage the initial loading state efficiently
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchPendingApproval(), fetchPendingValidation()]);
+      setIsLoading(false);
+    };
+    fetchAllData();
   }, []);
 
   const currentList = activeTab === 'approval' ? pendingApproval : pendingValidation;
@@ -210,6 +255,9 @@ function AdminPage_overstayPermits() {
 
   return (
     <>
+      {/* 4. Conditionally render Loading component */}
+      {isLoading && <Loading />}
+
       {/* Tab Navigation */}
       <div className="flex justify-center mb-4">
         <div className="bg-gray-200 rounded-lg p-1">
@@ -326,7 +374,8 @@ function AdminPage_overstayPermits() {
             filteredList.map((request) => (
               <div 
                 key={request.overnightExcuseID}
-                className="border-2 border-black p-2 rounded-2xl zain-regular text-black h-fit hover:bg-gray-50"
+                onClick={() => handleCardClick(request)}
+                className="border-2 border-black p-2 rounded-2xl zain-regular text-black h-fit hover:bg-gray-50 cursor-pointer"
               >
                 <div className='zain-regular'>
                   <p>Name: {request.Students?.studentName || 'N/A'}</p>
