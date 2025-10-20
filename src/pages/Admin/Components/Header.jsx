@@ -129,27 +129,6 @@ function Header() {
       {/* Right side: Services, Contacts, User Info/Logout */}
       <div className='flex items-center justify-end max-md:mt-5 px-2 md:px-5'>
         <ul className='flex flex-col md:flex-row md:items-center w-full md:w-auto'> {/* w-full for mobile stacking */}
-          {/* Services dropdown trigger and container */}
-          <li className='relative flex items-center mr-2 md:mr-5 py-3 text-[20px] lg:text-[20px] zain-regular max-md:hover:bg-gray-900/50 max-md:rounded-lg max-md:p-3 text-white hover:bg-gray-300/20 rounded-2xl'>
-            <div onClick={toggleDropdown} ref={dropdownRef} className='flex items-center cursor-pointer px-3'> {/* Attach dropdownRef here */}
-              SERVICES <img src='/dropdown.png' className='h-4 ml-2 max-lg:h-3'></img>
-            </div>
-            <div className={`${dropdownOpen ? 'block' : 'hidden'} transition-all duration-200 absolute top-full md:top-13 right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 bg-white p-1 rounded-lg text-black z-51 w-48 max-w-[80vw]`}>
-              <ul>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 1: 09XX-XXXX-XXX
-                </li>
-                <hr/>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 2: 09XX-XXXX-XXX
-                </li>
-                <hr/>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 3: 09XX-XXXX-XXX
-                </li>
-              </ul>
-            </div>
-          </li>
           {/* Contacts dropdown trigger and container */}
           <li className='flex items-center relative mr-2 md:mr-5 py-3 text-[20px] lg:text-[20px] zain-regular max-md:hover:bg-gray-900/50 hover:bg-gray-300/20 max-md:rounded-lg max-md:p-3 rounded-2xl text-white'>
             <div onClick={toggleContacts} ref={contactsRef} className='flex items-center cursor-pointer px-3'> {/* Attach contactsRef here */}
@@ -157,16 +136,18 @@ function Header() {
             </div>
             <div className={`${contactsOpen ? 'block' : 'hidden'} transition-all duration-200 absolute top-full md:top-13 right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 bg-white p-1 rounded-lg text-black z-51 w-48 max-w-[80vw]`}>
               <ul>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 1: 09XX-XXXX-XXX
-                </li>
-                <hr/>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 2: 09XX-XXXX-XXX
-                </li>
-                <hr/>
-                <li className='hover:bg-gray-200 p-2 rounded whitespace-nowrap'>
-                  Person 3: 09XX-XXXX-XXX
+                <li className='hover:bg-gray-200 p-2 rounded break-words'>
+                  <a
+                    href={
+                      "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+                      encodeURIComponent("shs_osa.upmindanao@up.edu.ph")
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    shs_osa.upmindanao@up.edu.ph
+                  </a>
                 </li>
               </ul>
             </div>

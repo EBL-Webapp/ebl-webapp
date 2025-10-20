@@ -114,31 +114,6 @@ export default function Header({
           <div className="relative">
             <button 
               onClick={() => {
-                setShowServices(prev => !prev);
-                setShowContacts(false); // optional: closes Services if it's open
-              }} 
-              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
-            >
-              Services <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showServices ? 'rotate-180' : ''}`} />
-            </button>
-
-            <div
-              className={`absolute right-0 bg-white text-black rounded-md shadow-lg mt-2 z-10 overflow-hidden transition-all duration-300 ease-in-out 
-              ${showServices ? 'opacity-100 max-h-60 py-2' : 'opacity-0 max-h-0 py-0'}`}
-              style={{ transitionProperty: 'opacity, max-height, padding' }}
-            >
-              <ul>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 1</li>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 2</li>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Service 3</li>
-              </ul>
-            </div>
-          </div>
-
-
-          <div className="relative">
-            <button 
-              onClick={() => {
                 setShowContacts(prev => !prev);
                 setShowServices(false); // optional: closes Services if it's open
               }} 
@@ -153,9 +128,23 @@ export default function Header({
               style={{ transitionProperty: 'opacity, max-height, padding' }}
             >
               <ul>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 1</li>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 2</li>
-                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">Contact 3</li>
+                <li className="px-4 py-2 hover:bg-[#114516] hover:text-white cursor-pointer">
+                    <a
+                      href={
+                        "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+                        encodeURIComponent("shs_osa.upmindanao@up.edu.ph") +
+                        "&su=" + encodeURIComponent("Subject here") +
+                        "&body=" + encodeURIComponent("Hello, I'd like to...")
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+
+                      shs_osa.upmindanao@up.edu.ph
+                      
+                    </a>
+                </li>
               </ul>
             </div>
           </div>
