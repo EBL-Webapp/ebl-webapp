@@ -62,12 +62,8 @@ const LandingPage = () => {
 
 
       // Then let's check if the user is admin
-      const adminID = await fetchColumnValue(
-        "admin",
-        "userID",
-        session.user.id,
-        "adminID",
-      );
+      const {data : temp_adminID, error : adminID_error} = await supabase.from("admin_accepted_users").select("*").eq("userID", session.user.id);
+      const adminID = temp_adminID[0].adminID;
       console.log('admin ID:', adminID);
       if(adminID){
         // Kailangan din ito icheck if whether accepted admin na ba siya or not.
