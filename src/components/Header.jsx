@@ -112,15 +112,6 @@ export default function Header({
 
 
           <div className="relative">
-            <button 
-              onClick={() => {
-                setShowContacts(prev => !prev);
-                setShowServices(false); // optional: closes Services if it's open
-              }} 
-              className="flex items-center hover:text-gray-200 !bg-transparent !border-none px-4 py-1 rounded-md"
-            >
-              Contacts <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${showContacts ? 'rotate-180' : ''}`} />
-            </button>
 
             <div
               className={`absolute right-0 bg-white text-black rounded-md shadow-lg mt-2 z-10 overflow-hidden transition-all duration-300 ease-in-out 
