@@ -61,35 +61,46 @@ const LandingPage = () => {
 
 
 
-      // Then let's check if the user is admin
-      const {data : temp_adminID, error : adminID_error} = await supabase.from("admin_accepted_users").select("*").eq("userID", session.user.id);
-      const adminID = temp_adminID[0].adminID;
-      console.log('admin ID:', adminID);
-      if(adminID){
-        // Kailangan din ito icheck if whether accepted admin na ba siya or not.
+      // Check admin
+      const { data: adminRecord, error: adminErr } = await supabase
+        .from("admin_accepted_users")
+        .select("adminID")
+        .eq("userID", session.user.id)
+        .maybeSingle();
 
-        const {data : isItAccepted, error : isItAccepted_error} = await supabase
-          .from('admin')
-          .select('isAccepted')
+      // If no admin record, skip this block
+      if (adminErr) {
+        console.log("Admin lookup error:", adminErr.message);
+      }
+
+      if (adminRecord) {
+        const adminID = adminRecord.adminID;
+        console.log("Admin ID:", adminID);
+
+        // Now check if this admin is accepted
+        const { data: acceptedAdmin, error: acceptedErr } = await supabase
+          .from("admin")
+          .select("isAccepted")
           .eq("adminID", adminID)
-          .limit(1);
+          .maybeSingle();
 
-        if(isItAccepted_error){
-          console.log("There's an error in retrieving if accepted admin or not:", isItAccepted_error.message);
+        if (acceptedErr) {
+          console.log("Error checking admin acceptance:", acceptedErr.message);
           return;
         }
 
-        console.log("Does it exist?", isItAccepted[0]);
-        
-        if(isItAccepted && (isItAccepted[0].isAccepted === true)){
-          localStorage.setItem("adminID", adminID)
-          navigate('/admin');
+        console.log("Admin acceptance record:", acceptedAdmin);
+
+        if (acceptedAdmin && acceptedAdmin.isAccepted === true) {
+          localStorage.setItem("adminID", adminID);
+          navigate("/admin");
           return;
         } else {
-          navigate('/NoUpdate')
+          navigate("/NoUpdate");
           return;
         }
       }
+
 
 
 

@@ -204,36 +204,6 @@ export default function Header({
               )}
 
 
-              {/* Services */}
-              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3">Services</p>
-              <Link 
-                to="/service1"
-                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
-              >
-                Service 1
-              </Link>
-              <Link 
-                to="/service2"
-                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
-              >
-                Service 2
-              </Link>
-
-              {/* Contacts */}
-              <p className="text-[0.6rem] sm:text-xs text-gray-500 px-3 mt-2">Contacts</p>
-              <Link 
-                to="/contact1"
-                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
-              >
-                Contact 1
-              </Link>
-              <Link 
-                to="/contact2"
-                className="block text-xs sm:text-sm font-light text-gray-700 hover:text-[#114516] px-4 py-1 rounded transition-colors duration-200"
-              >
-                Contact 2
-              </Link>
-
               {/* Logout (student only) */}
               {isStudent && isLoggedIn && (
                 <button
