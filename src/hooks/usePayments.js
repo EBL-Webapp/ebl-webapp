@@ -16,29 +16,35 @@ export function useStudentsWithPayments(page, limit, searchTerm = '') {
     return useQuery({
         queryKey: ['students', 'payments', page, limit, searchTerm],
         queryFn: () => paymentsService.fetchStudentsWithPayments(page, limit, searchTerm),
-        keepPreviousData: true,
+        placeholderData: (previousData) => previousData, // keep previous data while fetching next page
     });
 }
 
 /**
- * Hook to fetch static charges (rent, surcharge)
+ * Hook to fetch static charges (rent, surcharge).
+ * Uses staleTime: Infinity since this data changes very rarely (admin action required).
  * @returns {Object} Query object with charges object
  */
 export function useStaticCharges() {
     return useQuery({
         queryKey: ['staticCharges'],
         queryFn: paymentsService.fetchStaticCharges,
+        staleTime: Infinity,       // Never stale — only invalidated on mutation
+        refetchInterval: false,    // No polling needed
     });
 }
 
 /**
- * Hook to fetch all appliances (list of available appliances)
+ * Hook to fetch all appliances (list of available appliances).
+ * Uses staleTime: Infinity since the list changes via admin mutations only.
  * @returns {Object} Query object with appliances
  */
 export function useAppliances() {
     return useQuery({
         queryKey: ['appliances'],
         queryFn: paymentsService.fetchAppliances,
+        staleTime: Infinity,       // Never stale — only invalidated on mutation
+        refetchInterval: false,    // No polling needed
     });
 }
 
@@ -56,7 +62,7 @@ export function useStudentAppliances(studentNumber) {
 }
 
 /**
- * Hook to create a payment
+ * Hook to create a payment record
  * @returns {Object} Mutation object
  */
 export function useCreatePayment() {
@@ -67,6 +73,24 @@ export function useCreatePayment() {
             paymentsService.createPayment(studentNumber, adminID, paymentAmount, referenceID),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
+        },
+    });
+}
+
+/**
+ * Hook to update a student's balance
+ * @returns {Object} Mutation object
+ */
+export function useUpdateStudentBalance() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ studentNumber, newBalance }) =>
+            paymentsService.updateStudentBalance(studentNumber, newBalance),
+        onSuccess: (_, variables) => {
+            // Invalidate the specific student's payment data and the payments list
+            queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
+            queryClient.invalidateQueries({ queryKey: ['students', variables.studentNumber] });
         },
     });
 }
@@ -119,7 +143,7 @@ export function useDeleteAppliance() {
 }
 
 /**
- * Hook to trigger monthly charges
+ * Hook to trigger monthly charges via Edge Function
  * @returns {Object} Mutation object
  */
 export function useTriggerMonthlyCharges() {
@@ -128,7 +152,7 @@ export function useTriggerMonthlyCharges() {
     return useMutation({
         mutationFn: (adminID) => paymentsService.triggerMonthlyCharges(adminID),
         onSuccess: () => {
-            // Invalidate student payments as balances will change
+            // Balances will change for all students — invalidate the payments list
             queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
         },
     });

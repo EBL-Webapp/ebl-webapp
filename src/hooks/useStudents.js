@@ -16,6 +16,7 @@ export function useStudentsList(page, limit, searchTerm = '') {
     return useQuery({
         queryKey: ['students', 'list', page, limit, searchTerm],
         queryFn: () => studentsService.fetchStudentsPaginated(page, limit, searchTerm),
+        placeholderData: (previousData) => previousData, // keep previous page while fetching next
     });
 }
 
@@ -112,7 +113,9 @@ export function useDeleteStudent() {
     return useMutation({
         mutationFn: (studentNumber) => studentsService.deleteStudent(studentNumber),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['students'] });
+            // Scoped invalidation — only wipes the paginated list, not individual student caches
+            queryClient.invalidateQueries({ queryKey: ['students', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['students', 'archived'] });
         },
     });
 }

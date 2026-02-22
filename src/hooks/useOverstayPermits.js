@@ -68,7 +68,9 @@ export function useDenyPermit() {
         mutationFn: ({ requestId, adminID }) =>
             overstayPermitsService.denyPermit(requestId, adminID),
         onSuccess: () => {
+            // Invalidate both queues — a denied permit should leave both lists
             queryClient.invalidateQueries({ queryKey: ['permits', 'pendingApproval'] });
+            queryClient.invalidateQueries({ queryKey: ['permits', 'pendingValidation'] });
         },
     });
 }

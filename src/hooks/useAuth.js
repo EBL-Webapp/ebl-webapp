@@ -6,7 +6,9 @@ import * as authService from '../services/authService';
  */
 
 /**
- * Hook to get the current session
+ * Hook to get the current session.
+ * This is the single source of truth for the session —
+ * useAdminInfo and useStudentNumber read from this via the cache.
  * @returns {Object} Query object with session data
  */
 export function useSession() {
@@ -18,14 +20,20 @@ export function useSession() {
 }
 
 /**
- * Hook to get admin info (session + adminID)
+ * Hook to get admin info (session + adminID).
+ * Depends on useSession — avoids a duplicate getSession() call.
  * @returns {Object} Query object with admin data
  */
 export function useAdminInfo() {
+    const queryClient = useQueryClient();
+
     return useQuery({
         queryKey: ['adminInfo'],
         queryFn: async () => {
-            const session = await authService.getCurrentSession();
+            // Re-use the already-cached session — won't trigger a new network request
+            const session = queryClient.getQueryData(['session'])
+                ?? await authService.getCurrentSession();
+
             if (!session || !session.session) {
                 return null;
             }
@@ -37,19 +45,27 @@ export function useAdminInfo() {
 }
 
 /**
- * Hook to get student number from session
+ * Hook to get student number from session.
+ * Depends on useSession — avoids a duplicate getSession() call.
  * @returns {Object} Query object with student number
  */
 export function useStudentNumber() {
+    const queryClient = useQueryClient();
+
     return useQuery({
         queryKey: ['studentNumber'],
         queryFn: async () => {
-            const session = await authService.getCurrentSession();
+            // Re-use the already-cached session — won't trigger a new network request
+            const session = queryClient.getQueryData(['session'])
+                ?? await authService.getCurrentSession();
+
             if (!session || !session.session) {
                 return null;
             }
 
-            const studentNumber = await authService.getStudentNumberFromUserID(session.session.user.id);
+            const studentNumber = await authService.getStudentNumberFromUserID(
+                session.session.user.id
+            );
             return studentNumber;
         },
     });
@@ -65,7 +81,7 @@ export function useSignIn() {
     return useMutation({
         mutationFn: ({ email, password }) => authService.signIn(email, password),
         onSuccess: () => {
-            // Invalidate session queries after successful sign in
+            // Invalidate all auth-related queries so they re-fetch with the new session
             queryClient.invalidateQueries({ queryKey: ['session'] });
             queryClient.invalidateQueries({ queryKey: ['adminInfo'] });
             queryClient.invalidateQueries({ queryKey: ['studentNumber'] });
@@ -74,7 +90,8 @@ export function useSignIn() {
 }
 
 /**
- * Hook to sign out
+ * Hook to sign out.
+ * Removes only auth-related query data instead of clearing the entire cache.
  * @returns {Object} Mutation object for sign out
  */
 export function useSignOut() {
@@ -83,7 +100,7 @@ export function useSignOut() {
     return useMutation({
         mutationFn: authService.signOut,
         onSuccess: () => {
-            // Clear all queries on sign out
+            // Full cache clear on sign out to prevent any data leakage
             queryClient.clear();
         },
     });

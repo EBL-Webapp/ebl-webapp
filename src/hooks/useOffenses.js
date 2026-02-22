@@ -6,13 +6,16 @@ import * as offensesService from '../services/offensesService';
  */
 
 /**
- * Hook to fetch all offense types
+ * Hook to fetch all offense types.
+ * Uses staleTime: Infinity — this data is defined by admins and rarely changes.
  * @returns {Object} Query object with offense types
  */
 export function useOffenseTypes() {
     return useQuery({
         queryKey: ['offenses', 'types'],
         queryFn: offensesService.fetchOffenseTypes,
+        staleTime: Infinity,      // Never stale — only invalidated on mutation
+        refetchInterval: false,   // No polling needed
     });
 }
 
@@ -40,6 +43,7 @@ export function useStudentsForOffenses(searchTerm, page, limit) {
     return useQuery({
         queryKey: ['students', 'forOffenses', searchTerm, page, limit],
         queryFn: () => offensesService.searchStudentsForOffenses(searchTerm, page, limit),
+        placeholderData: (previousData) => previousData,
     });
 }
 
@@ -60,7 +64,7 @@ export function useCreateOffenseType() {
 }
 
 /**
- * Hook to create an offense record
+ * Hook to create an offense record for a student
  * @returns {Object} Mutation object
  */
 export function useCreateOffense() {
@@ -70,13 +74,17 @@ export function useCreateOffense() {
         mutationFn: ({ studentNumber, offenseID, adminID }) =>
             offensesService.createOffense(studentNumber, offenseID, adminID),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['offenses', 'student', variables.studentNumber] });
+            // Surgical: only invalidate the specific student's offense list
+            queryClient.invalidateQueries({
+                queryKey: ['offenses', 'student', variables.studentNumber],
+            });
         },
     });
 }
 
 /**
- * Hook to update an offense record
+ * Hook to update an offense record.
+ * Requires studentNumber in variables so invalidation is surgical.
  * @returns {Object} Mutation object
  */
 export function useUpdateOffense() {
@@ -85,23 +93,40 @@ export function useUpdateOffense() {
     return useMutation({
         mutationFn: ({ offenseRecordID, data }) =>
             offensesService.updateOffense(offenseRecordID, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['offenses', 'student'] });
+        onSuccess: (_, variables) => {
+            // Surgical: invalidate only the specific student's cache
+            if (variables.studentNumber) {
+                queryClient.invalidateQueries({
+                    queryKey: ['offenses', 'student', variables.studentNumber],
+                });
+            } else {
+                // Fallback if studentNumber not provided
+                queryClient.invalidateQueries({ queryKey: ['offenses', 'student'] });
+            }
         },
     });
 }
 
 /**
- * Hook to delete an offense record
+ * Hook to delete an offense record.
+ * Requires studentNumber in variables so invalidation is surgical.
  * @returns {Object} Mutation object
  */
 export function useDeleteOffense() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (offenseRecordID) => offensesService.deleteOffense(offenseRecordID),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['offenses', 'student'] });
+        mutationFn: ({ offenseRecordID }) => offensesService.deleteOffense(offenseRecordID),
+        onSuccess: (_, variables) => {
+            // Surgical: invalidate only the specific student's cache
+            if (variables.studentNumber) {
+                queryClient.invalidateQueries({
+                    queryKey: ['offenses', 'student', variables.studentNumber],
+                });
+            } else {
+                // Fallback if studentNumber not provided
+                queryClient.invalidateQueries({ queryKey: ['offenses', 'student'] });
+            }
         },
     });
 }

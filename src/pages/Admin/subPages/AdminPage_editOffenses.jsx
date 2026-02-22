@@ -11,17 +11,18 @@ import {
   useUpdateOffense,
   useDeleteOffense,
 } from '../../../hooks/useOffenses';
+import { X, Search, PlusCircle, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
 
 // Message Modal Component
 const MessageModal = ({ title, message, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-white/10 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm zain-regular text-black">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm zain-regular text-black">
         <h3 className="text-xl font-semibold mb-4 text-[#114516]">{title}</h3>
         <p className="mb-6 text-gray-700">{message}</p>
         <button
           onClick={onClose}
-          className="w-full py-2 px-4 bg-[#114516] text-white rounded-2xl hover:bg-[#1e6a23] transition-colors duration-200 shadow-md"
+          className="w-full py-2 px-4 bg-[#114516] text-white rounded-xl hover:bg-[#1e6a23] transition-colors duration-200 shadow-md"
         >
           OK
         </button>
@@ -33,20 +34,22 @@ const MessageModal = ({ title, message, onClose }) => {
 // Confirmation Modal Component
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
   return (
-    <div className="fixed inset-0 bg-white/10 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm zain-regular text-black">
-        <h3 className="text-xl font-semibold mb-4 text-red-600">Confirm Action</h3>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm zain-regular text-black">
+        <h3 className="text-xl font-semibold mb-4 text-red-600 flex items-center gap-2">
+          <AlertTriangle size={20} /> Confirm Action
+        </h3>
         <p className="mb-6 text-gray-700">{message}</p>
         <div className="flex justify-around gap-4">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 px-4 bg-gray-200 text-black rounded-2xl hover:bg-gray-300 transition-colors duration-200 shadow-md"
+            className="flex-1 py-2 px-4 bg-gray-200 text-black rounded-xl hover:bg-gray-300 transition-colors duration-200 shadow-md"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2 px-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors duration-200 shadow-md"
+            className="flex-1 py-2 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors duration-200 shadow-md"
           >
             Confirm
           </button>
@@ -58,7 +61,7 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
 
 function AdminPage_editOffenses() {
   const { session } = useGlobalContext();
-  const adminName = session?.session?.user?.user_metadata?.name || 'Unknown Admin';
+  const adminID = session?.session?.user?.id || 'Unknown';
 
   // Pagination and search states
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,17 +83,17 @@ function AdminPage_editOffenses() {
     offenseName: '',
     offensePkey: ''
   });
-  const [addOffense_formData, setAddOffense_formData] = useState({
-    name: '',
-    studentNumber: '',
-  });
-  const [addOffense_isFind, setAddOffense_isFind] = useState(false);
-  const [nameSearchList, set_nameSearchList] = useState([]);
+
+  // Add offense states (for step-by-step)
+  const [addOffenseSearchTerm, setAddOffenseSearchTerm] = useState('');
+  const [addOffensePage, setAddOffensePage] = useState(1);
   const [specificStudentToAddOffense, setSpecificStudentToAddOffense] = useState(null);
   const [selectedOffenseTypeId, setSelectedOffenseTypeId] = useState('');
+  const [steps, set_steps] = useState({ step1: true, step2: false });
+
+  // Add offense type states
   const [newOffenseTypeName, setNewOffenseTypeName] = useState('');
   const [newOffenseSeverity, setNewOffenseSeverity] = useState('');
-  const [steps, set_steps] = useState({ step1: true, step2: false });
 
   // Message/Confirm modal states
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -99,14 +102,22 @@ function AdminPage_editOffenses() {
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalAction, setConfirmModalAction] = useState(() => { });
 
-  // Fetch data using TanStack Query
+  // Fetch data
   const { data: studentsData, isLoading: isLoadingStudents } = useStudentsForOffenses(
     activeSearchTerm,
     currentPage,
     rowsPerPage
   );
-  const { data: offensesList = [], isLoading: isLoadingOffenses } = useOffenseTypes();
-  const { data: specificStudentOffenses = [], isLoading: isLoadingStudentOffenses } = useStudentOffenses(
+
+  const { data: addOffenseStudentsData, isLoading: isLoadingAddOffenseSearch } = useStudentsForOffenses(
+    addOffenseSearchTerm,
+    addOffensePage,
+    5
+  );
+
+  const { data: offenseTypes = [], isLoading: isLoadingOffenseTypes } = useOffenseTypes();
+
+  const { data: studentOffenses = [], isLoading: isLoadingStudentOffenses } = useStudentOffenses(
     specificStudent?.studentNumber
   );
 
@@ -117,8 +128,9 @@ function AdminPage_editOffenses() {
   const deleteOffenseMutation = useDeleteOffense();
 
   const isLoading = isLoadingStudents ||
-    isLoadingOffenses ||
+    isLoadingOffenseTypes ||
     isLoadingStudentOffenses ||
+    isLoadingAddOffenseSearch ||
     createOffenseTypeMutation.isPending ||
     createOffenseMutation.isPending ||
     updateOffenseMutation.isPending ||
@@ -149,22 +161,16 @@ function AdminPage_editOffenses() {
     setActiveSearchTerm(mainSearchTerm);
   };
 
-  // Student modal handlers
   const handleOpenSpecificStudent = (student) => {
-    if (!student || !student.studentNumber) {
-      handleShowMessage("Error", "Could not open student details due to missing information.");
-      return;
-    }
     setSpecificStudent(student);
     setSpecificStudentModal(true);
   };
 
-  // Edit offense handlers
   const handleOpenEdit = (offense) => {
     setOffenseHighlight({
-      offenseID: offense.offenceInstance,
-      admin: offense.adminName,
-      offenseName: offense.List_of_Offenses?.offenseName || '',
+      offenseID: offense.id || offense.offenceInstance,
+      admin: offense.recordedBy || offense.adminName,
+      offenseName: offense.list_of_offenses?.offenseName || '',
       offensePkey: offense.offenseID
     });
     setIsEditOffenseModal(true);
@@ -180,10 +186,10 @@ function AdminPage_editOffenses() {
     try {
       await updateOffenseMutation.mutateAsync({
         offenseRecordID: offenseHighlight.offenseID,
+        studentNumber: specificStudent?.studentNumber,
         data: {
           offenseID: offenseHighlight.offensePkey,
-          adminName: adminName,
-          timestamp: new Date().toISOString()
+          recordedBy: adminID,
         }
       });
       handleShowMessage("Success", "Offense updated successfully!");
@@ -194,9 +200,12 @@ function AdminPage_editOffenses() {
   };
 
   const deleteSpecificOffense = async () => {
-    handleShowConfirm("Are you sure you want to delete this offense? This action cannot be undone.", async () => {
+    handleShowConfirm("Are you sure you want to delete this offense?", async () => {
       try {
-        await deleteOffenseMutation.mutateAsync(offenseHighlight.offenseID);
+        await deleteOffenseMutation.mutateAsync({
+          offenseRecordID: offenseHighlight.offenseID,
+          studentNumber: specificStudent?.studentNumber
+        });
         handleShowMessage("Success", "Offense deleted successfully!");
         setIsEditOffenseModal(false);
       } catch (error) {
@@ -205,30 +214,17 @@ function AdminPage_editOffenses() {
     });
   };
 
-  // Add offense modal handlers
   const handleAddOffenseModal = () => {
     setAddOffenseModal(prev => {
-      if (prev === true) {
-        setAddOffense_isFind(false);
-        set_nameSearchList([]);
-        setAddOffense_formData({ name: '', studentNumber: '' });
-        set_steps({ step1: true, step2: false });
+      if (prev) {
+        setAddOffenseSearchTerm('');
+        setAddOffensePage(1);
         setSpecificStudentToAddOffense(null);
         setSelectedOffenseTypeId('');
+        set_steps({ step1: true, step2: false });
       }
       return !prev;
     });
-  };
-
-  const handleOffense_specificStudent = async (event) => {
-    event.preventDefault();
-    if (addOffense_formData.name === '' && addOffense_formData.studentNumber === '') {
-      handleShowMessage("Input Required", "Please add a name or student number to search.");
-      return;
-    }
-    // Use the students search query hook or implement search logic here
-    // For simplicity, we'll show a message
-    handleShowMessage("Info", "Search implementation pending - integrate with useStudentsForOffenses hook");
   };
 
   const handleSelectStudentForOffense = (student) => {
@@ -238,57 +234,42 @@ function AdminPage_editOffenses() {
 
   const handleAddOffenseSubmit = async (event) => {
     event.preventDefault();
-    if (!specificStudentToAddOffense || !selectedOffenseTypeId) {
-      handleShowMessage("Validation Error", "Please select a student and an offense type.");
-      return;
-    }
+    if (!specificStudentToAddOffense || !selectedOffenseTypeId) return;
 
     try {
       await createOffenseMutation.mutateAsync({
         studentNumber: specificStudentToAddOffense.studentNumber,
         offenseID: selectedOffenseTypeId,
-        adminID: adminName
+        adminID: adminID
       });
-      handleShowMessage("Success", `Offense successfully added for ${specificStudentToAddOffense.studentName}!`);
+      handleShowMessage("Success", `Offense added for ${specificStudentToAddOffense.studentName}!`);
       handleAddOffenseModal();
     } catch (error) {
       handleShowMessage("Error", "Failed to add offense: " + error.message);
     }
   };
 
-  // Add offense type handlers
-  const handleAddOffenseTypeModal = () => {
-    setShowAddOffenseTypeModal(prev => {
-      if (prev === true) {
-        setNewOffenseTypeName('');
-        setNewOffenseSeverity('');
-      }
-      return !prev;
-    });
-  };
-
   const handleAddOffenseTypeSubmit = async (event) => {
     event.preventDefault();
-    if (!newOffenseTypeName.trim() || !newOffenseSeverity) {
-      handleShowMessage("Input Required", "Please provide offense name and severity.");
-      return;
-    }
+    if (!newOffenseTypeName.trim() || !newOffenseSeverity) return;
 
     try {
       await createOffenseTypeMutation.mutateAsync({
         offenseName: newOffenseTypeName.trim(),
         offenseCharge: newOffenseSeverity
       });
-      handleShowMessage("Success", `Offense type "${newOffenseTypeName.trim()}" added successfully!`);
-      handleAddOffenseTypeModal();
+      handleShowMessage("Success", `Offense type "${newOffenseTypeName}" added!`);
+      setShowAddOffenseTypeModal(false);
+      setNewOffenseTypeName('');
+      setNewOffenseSeverity('');
     } catch (error) {
       handleShowMessage("Error", "Failed to add offense type: " + error.message);
     }
   };
 
   return (
-    <div className="py-10 px-4 sm:px-6 lg:px-8 bg-gray-100 min-h-screen font-sans">
-      {isLoading && <Loading />}
+    <div className="py-10 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen font-sans">
+      {(isLoading) && <Loading />}
 
       {showMessageModal && (
         <MessageModal
@@ -306,99 +287,354 @@ function AdminPage_editOffenses() {
         />
       )}
 
-      {/* Student Offenses Modal - Simplified version omitted for brevity, similar pattern as original */}
+      {/* Student Offenses Modal */}
+      {specificStudentModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex justify-between items-center bg-[#114516] text-white">
+              <div>
+                <h2 className="text-2xl font-bold">{specificStudent?.studentName}</h2>
+                <p className="text-sm opacity-90">{specificStudent?.studentNumber}</p>
+              </div>
+              <button
+                onClick={() => setSpecificStudentModal(false)}
+                className="hover:bg-white/20 p-2 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
 
-      <h1 className="marcellus-sc-regular text-black py-10 text-2xl md:text-3xl lg:text-4xl text-center md:text-left">
-        Edit Offenses
-      </h1>
-
-      <div className="flex flex-col md:flex-row w-full md:w-[90%] mx-auto justify-between items-center space-y-4 md:space-y-0">
-        <div className="flex items-center space-x-2 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Search by Name or Student Number..."
-            value={mainSearchTerm}
-            onChange={(e) => setMainSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleMainSearch()}
-            className="border border-gray-300 rounded-2xl px-4 py-2 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-[#114516]"
-          />
-          <button
-            onClick={handleMainSearch}
-            className="bg-[#114516] text-white px-4 py-2 rounded-2xl hover:bg-[#1e6a23] transition-colors duration-200 shadow-md"
-          >
-            Search
-          </button>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                {studentOffenses.length === 0 ? (
+                  <div className="text-center py-20 text-gray-500">
+                    <AlertTriangle size={48} className="mx-auto mb-4 opacity-20" />
+                    <p>No offenses recorded for this student.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {studentOffenses.map((offense) => (
+                      <div key={offense.id} className="bg-gray-50 border rounded-2xl p-4 flex justify-between items-center hover:shadow-md transition-shadow">
+                        <div>
+                          <h4 className="font-bold text-lg text-gray-800">{offense.list_of_offenses?.offenseName}</h4>
+                          <div className="flex gap-4 mt-1 text-sm text-gray-600">
+                            <span>Severity: <span className="font-semibold text-red-600">{offense.list_of_offenses?.offenseCharge}</span></span>
+                            <span>Recorded by: {offense.recordedBy || 'System'}</span>
+                            <span>Date: {new Date(offense.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(offense)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+      )}
 
-        <div className="flex space-x-2">
-          <button
-            onClick={handleAddOffenseModal}
-            className="bg-[#114516] text-white px-4 py-2 rounded-2xl hover:bg-[#1e6a23] transition-colors duration-200 shadow-md"
-          >
-            Add Offense
-          </button>
-          <button
-            onClick={handleAddOffenseTypeModal}
-            className="bg-[#4E0303] text-white px-4 py-2 rounded-2xl hover:bg-red-700 transition-colors duration-200 shadow-md"
-          >
-            Add Offense Type
-          </button>
+      {/* Edit Offense Modal */}
+      {isEditOffenseModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-6 text-[#114516]">Update Offense</h3>
+            <form onSubmit={editSpecificOffense} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Offense Type</label>
+                <select
+                  value={offenseHighlight.offensePkey}
+                  onChange={(e) => setOffenseHighlight(prev => ({ ...prev, offensePkey: e.target.value }))}
+                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#114516] outline-none"
+                >
+                  <option value="">Select an offense...</option>
+                  {offenseTypes.map(t => (
+                    <option key={t.id} value={t.id}>{t.offenseName} (Lv {t.offenseCharge})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditOffenseModal(false)}
+                  className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSpecificOffense}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  title="Delete Offense"
+                >
+                  <Trash2 size={20} />
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 px-4 bg-[#114516] text-white rounded-xl hover:bg-[#1e6a23] transition-colors shadow-lg"
+                >
+                  Update
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Students Table */}
-      <div className="mt-8 overflow-x-auto shadow-lg rounded-lg">
-        <table className="w-full bg-white border border-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                Student Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                Name
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {tableData.length === 0 ? (
-              <tr>
-                <td colSpan="3" className="px-6 py-8 text-center text-gray-500">
-                  {activeSearchTerm ? 'No students found matching your search.' : 'No students found.'}
-                </td>
-              </tr>
-            ) : (
-              tableData.map((student, index) => (
-                <tr key={student.studentNumber} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {student.studentNumber}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {student.studentName || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleOpenSpecificStudent(student)}
-                      className="bg-[#4E0303] hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+      {/* Add Offense Modal */}
+      {addOffenseModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="p-6 bg-[#114516] text-white flex justify-between items-center">
+              <h3 className="text-xl font-bold">Add New Offense</h3>
+              <button onClick={handleAddOffenseModal} className="hover:bg-white/20 p-1 rounded-full"><X size={20} /></button>
+            </div>
+
+            <div className="p-8">
+              {steps.step1 && (
+                <div className="space-y-6">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      placeholder="Search student by name or number..."
+                      value={addOffenseSearchTerm}
+                      onChange={(e) => { setAddOffenseSearchTerm(e.target.value); setAddOffensePage(1); }}
+                      className="w-full pl-12 pr-4 py-3 border rounded-2xl focus:ring-2 focus:ring-[#114516] outline-none shadow-sm"
+                    />
+                  </div>
+
+                  <div className="min-h-[300px] border rounded-2xl overflow-hidden bg-gray-50">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Student</th>
+                          <th className="px-4 py-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {(addOffenseStudentsData?.data || []).map(student => (
+                          <tr key={student.studentNumber} className="hover:bg-white">
+                            <td className="px-4 py-3">
+                              <p className="font-bold text-gray-800">{student.studentName}</p>
+                              <p className="text-xs text-gray-500">{student.studentNumber}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={() => handleSelectStudentForOffense(student)}
+                                className="text-[#114516] hover:bg-[#114516]/10 p-2 rounded-lg"
+                              >
+                                Select
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <PaginationControls
+                    currentPage={addOffensePage}
+                    totalRows={addOffenseStudentsData?.count || 0}
+                    rowsPerPage={5}
+                    onPageChange={setAddOffensePage}
+                  />
+                </div>
+              )}
+
+              {steps.step2 && (
+                <form onSubmit={handleAddOffenseSubmit} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="bg-[#114516]/5 p-4 rounded-2xl border border-[#114516]/10">
+                    <p className="text-sm font-medium text-[#114516]">Selected Student</p>
+                    <p className="text-lg font-bold text-gray-800">{specificStudentToAddOffense?.studentName}</p>
+                    <p className="text-sm text-gray-600 font-mono">{specificStudentToAddOffense?.studentNumber}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Select Offense Type</label>
+                    <select
+                      required
+                      value={selectedOffenseTypeId}
+                      onChange={(e) => setSelectedOffenseTypeId(e.target.value)}
+                      className="w-full border rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#114516] shadow-sm bg-white"
                     >
-                      View Offenses
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                      <option value="">-- Choose Offense Type --</option>
+                      {offenseTypes.map(t => (
+                        <option key={t.id} value={t.id}>{t.offenseName} (Severity: {t.offenseCharge})</option>
+                      ))}
+                    </select>
+                  </div>
 
-      <PaginationControls
-        rowsPerPage={rowsPerPage}
-        totalRows={totalRows}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
+                  <div className="flex gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => set_steps({ step1: true, step2: false })}
+                      className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!selectedOffenseTypeId}
+                      className="flex-[2] py-3 bg-[#114516] text-white rounded-2xl font-bold hover:bg-[#1e6a23] transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
+                    >
+                      Submit Record
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Offense Type Modal */}
+      {showAddOffenseTypeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-[#4E0303]">New Offense Type</h3>
+              <button onClick={() => setShowAddOffenseTypeModal(false)} className="p-1 rounded-full hover:bg-gray-100"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddOffenseTypeSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Offense Name</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. Broken Furniture"
+                  value={newOffenseTypeName}
+                  onChange={(e) => setNewOffenseTypeName(e.target.value)}
+                  className="w-full border rounded-2xl px-4 py-3 focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Severity / Penalty Level</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="1-10"
+                  value={newOffenseSeverity}
+                  onChange={(e) => setNewOffenseSeverity(e.target.value)}
+                  className="w-full border rounded-2xl px-4 py-3 focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#4E0303] text-white rounded-2xl font-bold hover:bg-red-800 transition-all shadow-lg mt-4 active:scale-[0.98]"
+              >
+                Create Offense Type
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto">
+        <h1 className="marcellus-sc-regular text-[#114516] py-10 text-3xl md:text-5xl text-center md:text-left drop-shadow-sm">
+          Offense Management
+        </h1>
+
+        <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={mainSearchTerm}
+              onChange={(e) => setMainSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleMainSearch()}
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#114516] shadow-sm transition-all"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleMainSearch}
+              className="bg-[#114516] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#1e6a23] transition-all shadow-md active:scale-95"
+            >
+              Search
+            </button>
+            <button
+              onClick={handleAddOffenseModal}
+              className="flex items-center gap-2 bg-[#114516] text-white px-6 py-3 rounded-2xl font-bold hover:bg-[#16551b] transition-all shadow-md active:scale-95 whitespace-nowrap"
+            >
+              <PlusCircle size={20} /> Record Offense
+            </button>
+            <button
+              onClick={() => setShowAddOffenseTypeModal(true)}
+              className="bg-transparent border-2 border-[#4E0303] text-[#4E0303] px-4 py-3 rounded-2xl font-bold hover:bg-[#4E0303] hover:text-white transition-all shadow-sm active:scale-95 transition-all"
+            >
+              Manage Types
+            </button>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-[#114516]/5">
+                <tr>
+                  <th className="px-8 py-5 text-left text-sm font-bold text-[#114516] uppercase tracking-wider">Student Number</th>
+                  <th className="px-8 py-5 text-left text-sm font-bold text-[#114516] uppercase tracking-wider">Full Name</th>
+                  <th className="px-8 py-5 text-center text-sm font-bold text-[#114516] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {isLoadingStudents ? (
+                  <tr>
+                    <td colSpan="3" className="px-8 py-10 text-center"><Loading /></td>
+                  </tr>
+                ) : tableData.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="px-8 py-20 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-4 opacity-40">
+                        <Search size={64} />
+                        <p className="text-xl">{activeSearchTerm ? 'No students match your search.' : 'Search for a student to manage offenses.'}</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  tableData.map((student) => (
+                    <tr key={student.studentNumber} className="hover:bg-gray-50/80 transition-colors group">
+                      <td className="px-8 py-5 whitespace-nowrap font-mono text-gray-600">{student.studentNumber}</td>
+                      <td className="px-8 py-5 whitespace-nowrap font-bold text-gray-800">{student.studentName}</td>
+                      <td className="px-8 py-5 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleOpenSpecificStudent(student)}
+                          className="px-6 py-2 bg-[#4E0303] text-white rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm active:scale-95"
+                        >
+                          View Profile
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <PaginationControls
+            rowsPerPage={rowsPerPage}
+            totalRows={totalRows}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      </div>
     </div>
   );
 }

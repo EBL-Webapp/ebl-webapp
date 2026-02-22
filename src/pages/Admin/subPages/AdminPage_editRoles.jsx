@@ -3,8 +3,8 @@ import Loading from '../../../components/Loading';
 import PaginationControls from '../../../components/PaginationControls';
 import StudentFullInfo from '../../../components/StudentFullInfo';
 import TransientFullInfo from '../../../components/TransientFullInfo';
-import { fetchColumnValue } from '../../../fetchColumnValue'; // Adjusted path if necessary
 import { useGlobalContext } from '../../../context/GlobalContext';
+import * as authService from '../../../services/authService';
 import {
   useRoleRequests,
   useAdmins,
@@ -80,16 +80,9 @@ function AdminPage_editRoles() {
   };
 
   const handleViewStudentInfo = async (studentId) => {
-    // First convert the UUID to studentNumber
-    // We might need to keep this logic here as specifically requested by original code structure
-    // ideally this should be part of the API response if possible, but keeping it as is for minimal backend impact
+    // Convert the userID UUID to studentNumber via the service layer
     try {
-      const actualStudentNumber = await fetchColumnValue(
-        "Students",
-        "userID",
-        studentId,
-        "studentNumber"
-      );
+      const actualStudentNumber = await authService.getStudentNumberFromUserID(studentId);
 
       if (actualStudentNumber) {
         setSelectedStudentId(actualStudentNumber);

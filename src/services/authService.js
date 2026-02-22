@@ -8,14 +8,14 @@ import { fetchColumnValue } from '../fetchColumnValue';
 
 /**
  * Get the current user session
- * @returns {Promise<Object|null>} Session data or null if error
+ * @returns {Promise<Object>} Session data
+ * @throws {Error} If session retrieval fails
  */
 export async function getCurrentSession() {
     const { data, error } = await supabase.auth.getSession();
 
     if (error) {
-        console.error('Error getting session:', error);
-        return null;
+        throw error;
     }
 
     return data;

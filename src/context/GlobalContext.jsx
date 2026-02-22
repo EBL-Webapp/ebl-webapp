@@ -5,7 +5,8 @@ import { useStudentNumber } from '../hooks/useAuth';
 
 /**
  * Global Context
- * Provides globally shared data across the application
+ * Provides globally shared data across the application.
+ * Exposes both data and error states for all parallel queries.
  */
 
 const GlobalContext = createContext(null);
@@ -16,19 +17,36 @@ const GlobalContext = createContext(null);
  */
 export function GlobalContextProvider({ children }) {
     // Fetch admin info (session + adminID)
-    const { data: adminInfo, isLoading: isLoadingAdmin } = useAdminInfo();
+    const {
+        data: adminInfo,
+        isLoading: isLoadingAdmin,
+        error: errorAdmin,
+    } = useAdminInfo();
 
     // Fetch student number from session
-    const { data: studentNumber, isLoading: isLoadingStudent } = useStudentNumber();
+    const {
+        data: studentNumber,
+        isLoading: isLoadingStudent,
+        error: errorStudent,
+    } = useStudentNumber();
 
     // Fetch static charges (rent, surcharge)
-    const { data: staticCharges, isLoading: isLoadingCharges } = useStaticCharges();
+    const {
+        data: staticCharges,
+        isLoading: isLoadingCharges,
+        error: errorCharges,
+    } = useStaticCharges();
 
     // Fetch appliances list
-    const { data: appliances, isLoading: isLoadingAppliances } = useAppliances();
+    const {
+        data: appliances,
+        isLoading: isLoadingAppliances,
+        error: errorAppliances,
+    } = useAppliances();
 
-    // Combined loading state
+    // Combined loading and error states
     const isLoading = isLoadingAdmin || isLoadingStudent || isLoadingCharges || isLoadingAppliances;
+    const hasError = !!(errorAdmin || errorStudent || errorCharges || errorAppliances);
 
     const contextValue = {
         // Admin data
@@ -48,6 +66,13 @@ export function GlobalContextProvider({ children }) {
         isLoadingStudent,
         isLoadingCharges,
         isLoadingAppliances,
+
+        // Error states — consumers can check these to show error UI
+        hasError,
+        errorAdmin: errorAdmin || null,
+        errorStudent: errorStudent || null,
+        errorCharges: errorCharges || null,
+        errorAppliances: errorAppliances || null,
     };
 
     return (
