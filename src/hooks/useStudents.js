@@ -116,3 +116,47 @@ export function useDeleteStudent() {
         },
     });
 }
+
+/**
+ * Hook to fetch guardian info for a student
+ * @param {string} studentNumber - Student number
+ * @returns {Object} Query object with guardian data
+ */
+export function useGuardianInfo(studentNumber) {
+    return useQuery({
+        queryKey: ['students', 'guardian', studentNumber],
+        queryFn: () => studentsService.fetchGuardianInfo(studentNumber),
+        enabled: !!studentNumber,
+    });
+}
+
+/**
+ * Hook to fetch the acknowledgement form for a student
+ * @param {string} studentNumber - Student number
+ * @returns {Object} Query object with acknowledgement form data
+ */
+export function useAcknowledgementForm(studentNumber) {
+    return useQuery({
+        queryKey: ['students', 'acknowledgement', studentNumber],
+        queryFn: () => studentsService.fetchAcknowledgementForm(studentNumber),
+        enabled: !!studentNumber,
+    });
+}
+
+/**
+ * Hook to submit the acknowledgement form
+ * @returns {Object} Mutation object
+ */
+export function useSubmitAcknowledgementForm() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ studentNumber, formData }) =>
+            studentsService.submitAcknowledgementForm(studentNumber, formData),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['students', 'acknowledgement', variables.studentNumber],
+            });
+        },
+    });
+}

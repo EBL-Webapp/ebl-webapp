@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
-import supabase from '../../../supabase_client';
+import React, { useState } from 'react';
 import StudentFullInfo from '../../../components/StudentFullInfo';
-import PaginationControls from '../../../components/PaginationControls'; // Now 1-indexed friendly
+import PaginationControls from '../../../components/PaginationControls';
+import { useStudentsList, useArchiveStudent } from '../../../hooks/useStudents';
 
-// Custom Confirmation Modal Component (re-included for completeness and to replace alert/confirm)
+// Custom Confirmation Modal Component
 const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
   if (!isOpen) return null;
 
@@ -31,86 +31,45 @@ const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
 };
 
 export default function AdminPage_studentsList() {
-  const [displayStudents, setDisplayStudents] = useState([]); // Students for the current page/search
+  // Search states
   const [searchByNameValue, setSearchByNameValue] = useState('');
   const [searchByStudentNumberValue, setSearchByStudentNumberValue] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+
+  // Modal states
   const [isModalOpen_studentInfo, setModalOpen_studentInfo] = useState(false);
   const [selectedStudentNumber, setSelectedStudentNumber] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Pagination states (now 1-indexed)
-  const [totalFilteredRows, setTotalFilteredRows] = useState(0); // Total rows matching current filters/search
-  const [currentPage, setCurrentPage] = useState(1); // Initialize to 1 (first page)
-  const itemsPerPage = 10; // Number of items per page
-
-  // States to hold the *actual* search terms applied to the Supabase query
-  const [activeSearchName, setActiveSearchName] = useState('');
-  const [activeSearchStudentNumber, setActiveSearchStudentNumber] = useState('');
-
-  // Confirmation modal state
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [studentToArchive, setStudentToArchive] = useState(null);
 
+  // Pagination states (1-indexed)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Main data fetching function
-  // This function now takes the current pagination and search parameters
-  const fetchStudentsList = async (pageNumber, pageSize, nameSearch, studentNumSearch) => {
-    setLoading(true);
-    let query = supabase
-      .from("Students")
-      .select("*", { count: 'exact' }) // Always get exact count for pagination
-      .eq("isArchived", false);
+  // Fetch students using TanStack Query
+  const { data: studentsData, isLoading } = useStudentsList(
+    currentPage,
+    itemsPerPage,
+    activeSearchTerm
+  );
 
-    // Apply search filters if active
-    if (nameSearch) {
-      query = query.ilike("studentName", `%${nameSearch}%`); // Case-insensitive partial match
-    }
-    if (studentNumSearch) {
-      query = query.ilike("studentNumber", `%${studentNumSearch}%`); // Case-insensitive partial match
-    }
-
-    // Calculate the range for Supabase (0-indexed and inclusive)
-    // For 1-indexed pageNumber, 'from' is (pageNumber - 1) * pageSize
-    const from = (pageNumber - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.order("studentName").range(from, to);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error("Error fetching students list: ", error.message);
-      setDisplayStudents([]);
-      setTotalFilteredRows(0); // Reset total count on error
-    } else {
-      setDisplayStudents(data || []);
-      setTotalFilteredRows(count || 0); // Set the total count from the Supabase response
-      console.log("Fetched students list (page, search, count): ", pageNumber, nameSearch, studentNumSearch, count);
-    }
-    setLoading(false);
-  };
-
-  // Effect to re-fetch data whenever pagination or search parameters change
-  useEffect(() => {
-    // Call fetchStudentsList with the current state values
-    fetchStudentsList(currentPage, itemsPerPage, activeSearchName, activeSearchStudentNumber);
-  }, [currentPage, activeSearchName, activeSearchStudentNumber, itemsPerPage]); // Dependencies
+  // Archive mutation
+  const archiveStudentMutation = useArchiveStudent();
 
   // Handler for name search form submission
   const searchByName = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to the first page (1-indexed) on new search
-    setActiveSearchName(searchByNameValue.trim());
-    setActiveSearchStudentNumber(''); // Clear other search
-    setSearchByStudentNumberValue(''); // Clear other search input
+    setCurrentPage(1);
+    setActiveSearchTerm(searchByNameValue.trim());
+    setSearchByStudentNumberValue('');
   };
 
   // Handler for student number search form submission
   const searchByStudentNumber = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to the first page (1-indexed) on new search
-    setActiveSearchStudentNumber(searchByStudentNumberValue.trim());
-    setActiveSearchName(''); // Clear other search
-    setSearchByNameValue(''); // Clear other search input
+    setCurrentPage(1);
+    setActiveSearchTerm(searchByStudentNumberValue.trim());
+    setSearchByNameValue('');
   };
 
   // Handler to initiate student archiving (opens confirmation modal)
@@ -121,25 +80,18 @@ export default function AdminPage_studentsList() {
 
   // Handler for confirming student archive
   const confirmArchive = async () => {
-    setIsConfirmModalOpen(false); // Close modal
+    setIsConfirmModalOpen(false);
     if (!studentToArchive) return;
 
-    const { error } = await supabase
-      .from("Students")
-      .update({ isArchived: true })
-      .eq("studentNumber", studentToArchive);
-
-    if (error) {
-      console.error("Error archiving student: ", error.message);
-      // In a real application, you'd show a custom toast or error message here
-      return;
+    try {
+      await archiveStudentMutation.mutateAsync(studentToArchive);
+      console.log(`Student ${studentToArchive} archived successfully`);
+    } catch (error) {
+      console.error("Error archiving student:", error);
+      alert("Error archiving student: " + error.message);
+    } finally {
+      setStudentToArchive(null);
     }
-
-    console.log(`Student ${studentToArchive} archived successfully`);
-    // Re-fetch data to update the list and counts after archiving
-    // We pass currentPage, as the number of pages might change after archiving
-    fetchStudentsList(currentPage, itemsPerPage, activeSearchName, activeSearchStudentNumber);
-    setStudentToArchive(null); // Clear student to archive
   };
 
   // Handler for canceling student archive
@@ -158,16 +110,18 @@ export default function AdminPage_studentsList() {
   const clearSearch = () => {
     setSearchByNameValue('');
     setSearchByStudentNumberValue('');
-    setActiveSearchName('');
-    setActiveSearchStudentNumber('');
-    setCurrentPage(1); // Reset to the first page (1-indexed)
+    setActiveSearchTerm('');
+    setCurrentPage(1);
   };
 
   // Handler for page change from PaginationControls
-  // It receives the new page number (1-indexed)
   const pageChange = (newPageNumber) => {
     setCurrentPage(newPageNumber);
   };
+
+  const displayStudents = studentsData?.data || [];
+  const totalFilteredRows = studentsData?.count || 0;
+  const combinedLoading = isLoading || archiveStudentMutation.isPending;
 
   return (
     <div className='bg-white min-h-screen p-6'>
@@ -222,7 +176,7 @@ export default function AdminPage_studentsList() {
         </div>
 
         {/* Loading State */}
-        {loading ? (
+        {combinedLoading ? (
           <div className='text-center py-8'>
             <div className='text-gray-500'>Loading students...</div>
           </div>
@@ -251,7 +205,7 @@ export default function AdminPage_studentsList() {
                   {displayStudents.length === 0 ? (
                     <tr>
                       <td colSpan="4" className='px-6 py-8 text-center text-gray-500'>
-                        {(activeSearchName || activeSearchStudentNumber) ? 'No students found matching your search.' : 'No students found.'}
+                        {activeSearchTerm ? 'No students found matching your search.' : 'No students found.'}
                       </td>
                     </tr>
                   ) : (
@@ -264,11 +218,10 @@ export default function AdminPage_studentsList() {
                           {student.studentName || 'N/A'}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              student.isAssessed
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.isAssessed
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {student.isAssessed ? 'Assessed' : 'Pending'}
                           </span>
                         </td>
@@ -297,9 +250,9 @@ export default function AdminPage_studentsList() {
             {/* Pagination Controls */}
             <PaginationControls
               rowsPerPage={itemsPerPage}
-              totalRows={totalFilteredRows} // Pass the total count of filtered/searched rows
-              currentPage={currentPage} // Pass the current 1-indexed page
-              onPageChange={pageChange} // Callback receives 1-indexed page
+              totalRows={totalFilteredRows}
+              currentPage={currentPage}
+              onPageChange={pageChange}
             />
           </>
         )}

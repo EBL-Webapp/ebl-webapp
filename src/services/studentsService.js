@@ -159,3 +159,68 @@ export async function fetchStudentInfo(studentNumber) {
 
     return data;
 }
+
+/**
+ * Fetch guardian information for a student
+ * @param {string} studentNumber - Student number
+ * @returns {Promise<Array>}
+ */
+export async function fetchGuardianInfo(studentNumber) {
+    const { data, error } = await supabase
+        .from('guardianInformation')
+        .select('*')
+        .eq('studentNumber', studentNumber);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Fetch the active acknowledgement form submission for a student
+ * @param {string} studentNumber - Student number
+ * @returns {Promise<Array>}
+ */
+export async function fetchAcknowledgementForm(studentNumber) {
+    const { data, error } = await supabase
+        .from('Acknowledgemet_of_Accountability_Form')
+        .select('*')
+        .eq('studentNumber', studentNumber)
+        .eq('isArchived', false);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Submit a new acknowledgement form
+ * @param {string} studentNumber - Student number
+ * @param {Object} formData - Form data fields
+ * @returns {Promise<void>}
+ */
+export async function submitAcknowledgementForm(studentNumber, formData) {
+    const { error } = await supabase
+        .from('Acknowledgemet_of_Accountability_Form')
+        .insert([{
+            studentNumber,
+            roomNumber: formData.roomNumber,
+            roomKey_propertyNumber: formData.roomKey,
+            studyTable_propertyNumber: formData.studyTable,
+            jalousies_propertyNumber: formData.jalousies,
+            window_propertyNumber: formData.windowScreens,
+            bedfoam_propertyNumber: formData.bedfoam,
+            closet_propertyNumber: formData.closet,
+            ClosetDoorHandle_propertyNumber: formData.closetDoorHandle,
+            chair_propertyNumber: formData.chair,
+            semester: formData.semester,
+        }]);
+
+    if (error) {
+        throw error;
+    }
+}

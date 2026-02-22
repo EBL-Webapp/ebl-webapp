@@ -6,26 +6,27 @@ import * as rolesService from '../services/rolesService';
  */
 
 /**
- * Hook to fetch admins
+ * Hook to fetch role requests (paginated)
  * @param {number} page - Page number
  * @param {number} limit - Items per page
- * @returns {Object} Query object with admins
+ * @returns {Object} Query object with role requests
  */
-export function useAdmins(page, limit) {
+export function useRoleRequests(page, limit) {
     return useQuery({
-        queryKey: ['admins', page, limit],
-        queryFn: () => rolesService.fetchAdmins(page, limit),
+        queryKey: ['roleRequests', page, limit],
+        queryFn: () => rolesService.fetchRoleRequests(page, limit),
+        keepPreviousData: true,
     });
 }
 
 /**
- * Hook to fetch pending registrations
- * @returns {Object} Query object with pending registrations
+ * Hook to fetch all admins
+ * @returns {Object} Query object with admins
  */
-export function usePendingRegistrations() {
+export function useAdmins() {
     return useQuery({
-        queryKey: ['registrations', 'pending'],
-        queryFn: rolesService.fetchPendingRegistrations,
+        queryKey: ['admins'],
+        queryFn: rolesService.fetchAdmins,
     });
 }
 
@@ -45,7 +46,7 @@ export function useDeleteAdmin() {
 }
 
 /**
- * Hook to approve a registration
+ * Hook to approve a registration/role request
  * @returns {Object} Mutation object
  */
 export function useApproveRegistration() {
@@ -54,13 +55,14 @@ export function useApproveRegistration() {
     return useMutation({
         mutationFn: ({ id, type }) => rolesService.approveRegistration(id, type),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['registrations', 'pending'] });
+            queryClient.invalidateQueries({ queryKey: ['roleRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['admins'] }); // In case an admin was approved
         },
     });
 }
 
 /**
- * Hook to deny a registration
+ * Hook to deny (delete) a registration/role request
  * @returns {Object} Mutation object
  */
 export function useDenyRegistration() {
@@ -69,7 +71,7 @@ export function useDenyRegistration() {
     return useMutation({
         mutationFn: ({ id, type }) => rolesService.denyRegistration(id, type),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['registrations', 'pending'] });
+            queryClient.invalidateQueries({ queryKey: ['roleRequests'] });
         },
     });
 }

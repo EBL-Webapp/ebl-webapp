@@ -1,237 +1,120 @@
-import {useEffect, useReducer, useState} from 'react'
-import supabase from '../../../supabase_client'
-import Loading from '../../../components/Loading'
-import PaginationControls from '../../../components/PaginationControls'
-import StudentFullInfo from '../../../components/StudentFullInfo'
-import TransientFullInfo from '../../../components/TransientFullInfo'
-import { fetchColumnValue } from './../../../fetchColumnValue';
+import { useState } from 'react';
+import Loading from '../../../components/Loading';
+import PaginationControls from '../../../components/PaginationControls';
+import StudentFullInfo from '../../../components/StudentFullInfo';
+import TransientFullInfo from '../../../components/TransientFullInfo';
+import { fetchColumnValue } from '../../../fetchColumnValue'; // Adjusted path if necessary
+import { useGlobalContext } from '../../../context/GlobalContext';
+import {
+  useRoleRequests,
+  useAdmins,
+  useApproveRegistration,
+  useDenyRegistration,
+  useDeleteAdmin
+} from '../../../hooks/useRoles';
 
 function AdminPage_editRoles() {
-
+  const { adminID } = useGlobalContext();
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalRows, setTotalRows] = useState(0);
-  const [load, setLoad] = useState(true);
-  const [rows, setRows] = useState([]);
   const pageSize = 5;
-  const from = (currentPage - 1) * pageSize;
-  const to = from + pageSize - 1;
-  
+
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [selectTransientID, setSelectedTransientId] = useState(null);
-  const [adminRows, setAdminRows] = useState([]);
 
-  const handlePageChange = (data) => {
-    setCurrentPage(data)
-  }
+  // TanStack Query Hooks
+  const { data: requestData, isLoading: isLoadingRequests } = useRoleRequests(currentPage, pageSize);
+  const { data: adminsList = [], isLoading: isLoadingAdmins } = useAdmins();
 
-const retrieve_data = async () => {
-  try {
-    const { data, error, count } = await supabase
-      .from("all_requests_summary")
-      .select("*", { count: "exact" })
-      .eq("request_status_boolean", false)
-      .range(from, to);
-    
-    if (error) throw error;
-    
-    setTotalRows(count || 0);
-    setRows(data || []);
-  } catch (error) {
-    console.error("Error retrieving requests:", error.message);
-    setRows([]);
-    setTotalRows(0);
-  } finally {
-    setLoad(false);
-  }
-};
+  // Mutations
+  const approveMutation = useApproveRegistration();
+  const denyMutation = useDenyRegistration();
+  const deleteAdminMutation = useDeleteAdmin();
 
-const handleDeleteAdmin = async (id) => {
-  try {
-    // Optimistically update UI
-    const filteredRows = adminRows.filter(row => row.adminID !== id);
-    setAdminRows(filteredRows);
+  // Loading state
+  const isLoading = isLoadingRequests || isLoadingAdmins ||
+    approveMutation.isPending || denyMutation.isPending ||
+    deleteAdminMutation.isPending;
 
-    const { error } = await supabase
-      .from('admin')
-      .delete()
-      .eq('adminID', id);
+  const rows = requestData?.data || [];
+  const totalRows = requestData?.count || 0;
 
-    if (error) throw error;
-    
-    console.log("Admin deleted successfully");
-  } catch (error) {
-    console.error("Error deleting admin:", error.message);
-    // Revert UI on error
-    await getAdmins();
-  }
-};
+  // Filter out current admin from the list
+  const filteredAdmins = adminsList.filter(admin => admin.adminID !== adminID);
 
-const handleAccept = async (id, type) => {
-  try {
-    // Optimistically update UI
-    const filteredRows = rows.filter(row => row.original_entity_id !== id);
-    setRows(filteredRows);
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
 
-    let error;
-
-    if (type === 'transient') {
-      const result = await supabase
-        .from('Transient')
-        .update({ isAccepted: true })
-        .eq("transientID", id);
-      error = result.error;
-      
-    } else if (type === 'student') {
-      const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
-      
-      if (!studentNumber) {
-        throw new Error("Student number not found for the given userID");
-      }
-
-      const result = await supabase
-        .from('Students')
-        .update({ isAssessed: true })
-        .eq("studentNumber", studentNumber);
-      error = result.error;
-      
-    } else if (type === 'admin') {
-      const result = await supabase
-        .from("admin")
-        .update({ isAccepted: true })
-        .eq("userID", id);
-      error = result.error;
-      
-    } else {
-      throw new Error(`Unknown type: ${type}`);
+  const handleAccept = async (id, type) => {
+    try {
+      await approveMutation.mutateAsync({ id, type });
+      console.log(`${type} approved successfully`);
+    } catch (error) {
+      console.error(`Error approving ${type}:`, error);
+      alert(`Error approving ${type}: ` + error.message);
     }
+  };
 
-    if (error) throw error;
-    
-    console.log(`${type} approved successfully`);
-  } catch (error) {
-    console.error(`Error approving ${type}:`, error.message);
-    // Revert UI on error
-    await retrieve_data();
-  }
-};
+  const handleDeny = async (id, type) => {
+    if (!window.confirm(`Are you sure you want to deny this ${type} request? This will verify the deletion.`)) return;
 
-const getAdmins = async () => {
-  try {
-    const session_adminID = localStorage.getItem('adminID');
-
-    const { data, error } = await supabase
-      .from('admin')
-      .select('adminName, email, adminID, userID')
-      .neq('adminID', session_adminID)
-      .eq('isAccepted', true);
-
-    if (error) throw error;
-
-    setAdminRows(data || []);
-  } catch (error) {
-    console.error("Error fetching admins:", error.message);
-    setAdminRows([]);
-  }
-};
-
-const handleDelete = async (id, type) => {
-  try {
-    // Optimistically update UI
-    const filteredRows = rows.filter(row => row.original_entity_id !== id);
-    setRows(filteredRows);
-
-    let error;
-
-    if (type === 'student') {
-      const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
-      
-      if (!studentNumber) {
-        throw new Error("Student number not found for the given userID");
-      }
-
-      const result = await supabase
-        .from('Students')
-        .delete()
-        .eq("studentNumber", studentNumber);
-      error = result.error;
-      
-    } else if (type === 'transient') {
-      const result = await supabase
-        .from('Transient')
-        .delete()
-        .eq("transientID", id);
-      error = result.error;
-      
-    } else if (type === 'admin') {
-      const result = await supabase
-        .from('admin')
-        .delete()
-        .eq("userID", id);
-      error = result.error;
-      
-    } else {
-      throw new Error(`Unknown type: ${type}`);
+    try {
+      await denyMutation.mutateAsync({ id, type });
+      console.log(`${type} denied (deleted) successfully`);
+    } catch (error) {
+      console.error(`Error denying ${type}:`, error);
+      alert(`Error denying ${type}: ` + error.message);
     }
+  };
 
-    if (error) throw error;
-    
-    console.log(`${type} deleted successfully`);
-  } catch (error) {
-    console.error(`Error deleting ${type}:`, error.message);
-    // Revert UI on error
-    await retrieve_data();
-  }
-};
+  const handleDeleteAdmin = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this admin?")) return;
 
-  useEffect(() => {
-
-    const fetchAll = async () => {
-      await Promise.all(
-        retrieve_data(),
-        getAdmins(),
-      )
-      setLoad(false);
+    try {
+      await deleteAdminMutation.mutateAsync(id);
+      console.log("Admin deleted successfully");
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      alert("Error deleting admin: " + error.message);
     }
-    
-    //After finish loading
-    fetchAll();
-  }, [currentPage])
+  };
 
-  // This function will be called by the View button
   const handleViewStudentInfo = async (studentId) => {
     // First convert the UUID to studentNumber
-    const actualStudentNumber = await fetchColumnValue(
-      "Students", 
-      "userID", 
-      studentId, 
-      "studentNumber"
-    );
-    
-    console.log("Original ID:", studentId);
-    console.log("Actual Student Number:", actualStudentNumber);
-    
-    // Then set the state with the correct studentNumber
-    if (actualStudentNumber) {
-      setSelectedStudentId(actualStudentNumber);
-    } else {
-      console.error("Could not find student number for ID:", studentId);
-      // Optionally show an error message to the user
-    }
-  }
+    // We might need to keep this logic here as specifically requested by original code structure
+    // ideally this should be part of the API response if possible, but keeping it as is for minimal backend impact
+    try {
+      const actualStudentNumber = await fetchColumnValue(
+        "Students",
+        "userID",
+        studentId,
+        "studentNumber"
+      );
 
-  // This function will be passed to the StudentFullInfo component to close the modal
+      if (actualStudentNumber) {
+        setSelectedStudentId(actualStudentNumber);
+      } else {
+        console.error("Could not find student number for ID:", studentId);
+        alert("Could not find student number for this request.");
+      }
+    } catch (e) {
+      console.error("Error fetching student number", e);
+    }
+  };
+
   const handleCloseStudentInfo = () => {
     setSelectedStudentId(null);
-  }
+  };
 
   const handleCloseTransientInfo = () => {
     setSelectedTransientId(null);
-  }
+  };
 
   return (
     <div className="pt-10 pb-60">
-      {load ? <Loading/> : null}
-      {/* This is the roles request table */}
+      {isLoading && <Loading />}
+
+      {/* Roles Request Table */}
       <div>
         <div>
           <h1 className="text-black zain-regular ml-15">Roles Request</h1>
@@ -239,7 +122,6 @@ const handleDelete = async (id, type) => {
         <div className="mt-10 overflow-x-auto shadow-lg rounded-lg w-[90%] mx-auto">
           <table className="w-full bg-white border border-gray-200">
             <thead className="bg-gray-50">
-              {}
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                   Name
@@ -253,70 +135,71 @@ const handleDelete = async (id, type) => {
               </tr>
             </thead>
 
-            {rows && rows.length > 0 ? (
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* Example Row (you'll replace this with your dynamic data) */}
-                {rows.map((row) => {
-                  return (
-                    <tr key={row.original_entity_id} className='text-gray-500'>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium ">
-                        {row.requester_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm ">
-                        {row.requester_type == "student" ? 'Student' : row.requester_type == 'admin' ? 'Admin' : 'Transient'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <div className="flex justify-center space-x-2">
-                            <button onClick={() => handleAccept(row.original_entity_id, row.requester_type)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
-                                Accept
-                            </button>
-                            <button onClick={() => handleDelete(row.original_entity_id, row.requester_type)} className="bg-red-300 hover:bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
-                                Deny
-                            </button>
-                            {row.requester_type === 'student' ?
-                                <button
-                                    onClick={() => handleViewStudentInfo(row.original_entity_id)} // Set student ID for StudentFullInfo
-                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
-                                    View
-                                </button>
-                            : row.requester_type === 'transient' ? // Add this condition for transients
-                                <button
-                                    onClick={() => setSelectedTransientId(row.original_entity_id)} // Set transient ID for TransientFullInfo
-                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
-                                    View
-                                </button>
-                            : // For admin or other types, keep disabled
-                                <button disabled className="bg-gray-200 text-white px-3 py-1 rounded text-sm transition-colors cursor-not-allowed duration-200">
-                                    View
-                                </button>
-                            }
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-
-                {/* End Example Row */}
-              </tbody>
-
-            ) : (
-              <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {rows.length === 0 ? (
                 <tr className='font-medium text-gray-500'>
-                  <td colSpan={4} className='text-center py-5'>
-                    No Data Found
+                  <td colSpan={3} className='text-center py-5'>
+                    No Pending Requests
                   </td>
                 </tr>
-              </tbody>
-            )}
-
+              ) : (
+                rows.map((row) => (
+                  <tr key={row.original_entity_id} className='text-gray-500'>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {row.requester_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {row.requester_type === "student" ? 'Student' : row.requester_type === 'admin' ? 'Admin' : 'Transient'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <div className="flex justify-center space-x-2">
+                        <button
+                          onClick={() => handleAccept(row.original_entity_id, row.requester_type)}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleDeny(row.original_entity_id, row.requester_type)}
+                          className="bg-red-300 hover:bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+                        >
+                          Deny
+                        </button>
+                        {row.requester_type === 'student' ?
+                          <button
+                            onClick={() => handleViewStudentInfo(row.original_entity_id)}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                            View
+                          </button>
+                          : row.requester_type === 'transient' ?
+                            <button
+                              onClick={() => setSelectedTransientId(row.original_entity_id)}
+                              className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                              View
+                            </button>
+                            :
+                            <button disabled className="bg-gray-200 text-white px-3 py-1 rounded text-sm transition-colors cursor-not-allowed duration-200">
+                              View
+                            </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
-        {/*  This is the pagination*/}
-        <PaginationControls rowsPerPage={5} totalRows={totalRows}  currentPage={currentPage} onPageChange={handlePageChange} />
+
+        <PaginationControls
+          rowsPerPage={pageSize}
+          totalRows={totalRows}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </div>
 
-      {/* RENDER THE STUDENTFULLINFO COMPONENT OUTSIDE THE MAP */}
+      {/* Student Info Modal */}
       {selectedStudentId && (
         <StudentFullInfo
           isOpen={!!selectedStudentId}
@@ -325,80 +208,70 @@ const handleDelete = async (id, type) => {
         />
       )}
 
-      {
-        selectTransientID && (
-          <TransientFullInfo 
+      {/* Transient Info Modal */}
+      {selectTransientID && (
+        <TransientFullInfo
           isOpen={!!selectTransientID}
           onClose={handleCloseTransientInfo}
           transientId={selectTransientID}
-          />
-        )
-      }
+        />
+      )}
 
-
-      {/* This is the admin delete button */}
+      {/* List of Admins */}
       <div className='mt-20'>
         <div>
           <h1 className="text-black zain-regular ml-15">List of Admins</h1>
         </div>
 
-        {/* This is the table part */}
-        <div class="mt-20">
-          <div class="mt-10 overflow-x-auto shadow-lg rounded-lg w-[90%] mx-auto">
-            <table class="w-full bg-white border border-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    Admin Name
-                  </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    Account Email
-                  </th>
-                  <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+        <div className="mt-10 overflow-x-auto shadow-lg rounded-lg w-[90%] mx-auto">
+          <table className="w-full bg-white border border-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Admin Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Account Email
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-              {adminRows.length > 0 && adminRows ? (
-                <tbody class="bg-white divide-y divide-gray-200">
-                  {adminRows.map((x) => (
-                  <tr key={x.adminID} class="text-gray-500">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {x.adminName}
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredAdmins.length === 0 ? (
+                <tr className='font-medium text-gray-500'>
+                  <td colSpan={3} className='text-center py-5'>
+                    No Other Admins Found
+                  </td>
+                </tr>
+              ) : (
+                filteredAdmins.map((admin) => (
+                  <tr key={admin.adminID} className="text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {admin.adminName}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                      {x.email ? x.email : 'N/A'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {admin.email || 'N/A'}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <div class="flex justify-center space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <div className="flex justify-center space-x-2">
                         <button
-                          class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-                          onClick={() => handleDeleteAdmin(x.adminID)}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+                          onClick={() => handleDeleteAdmin(admin.adminID)}
                         >
                           Delete
                         </button>
                       </div>
                     </td>
                   </tr>
-                  ) )}
-                </tbody>
-              ) : (
-                <tbody>
-                  <tr className='font-medium text-gray-500'>
-                    <td colSpan={3} className='text-center py-5'>
-                      No Data Found
-                    </td>
-                  </tr>
-                </tbody>
+                ))
               )}
-
-            </table>
-          </div>
+            </tbody>
+          </table>
         </div>
-
       </div>
-
     </div>
   );
 }

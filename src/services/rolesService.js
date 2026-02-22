@@ -1,4 +1,5 @@
 import supabase from '../supabase_client';
+import { fetchColumnValue } from '../fetchColumnValue';
 
 /**
  * Roles Service
@@ -6,18 +7,20 @@ import supabase from '../supabase_client';
  */
 
 /**
- * Fetch all admins (paginated)
+ * Fetch role requests (active requests where request_status_boolean is false)
+ * Uses 'all_requests_summary' view
  * @param {number} page - Page number (1-indexed)
  * @param {number} limit - Items per page
  * @returns {Promise<{data: Array, count: number}>}
  */
-export async function fetchAdmins(page, limit) {
+export async function fetchRoleRequests(page, limit) {
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit - 1;
 
     const { data, error, count } = await supabase
-        .from('admin')
-        .select('*', { count: 'exact' })
+        .from("all_requests_summary")
+        .select("*", { count: "exact" })
+        .eq("request_status_boolean", false)
         .range(startIndex, endIndex);
 
     if (error) {
@@ -25,6 +28,23 @@ export async function fetchAdmins(page, limit) {
     }
 
     return { data, count };
+}
+
+/**
+ * Fetch all admins
+ * @returns {Promise<Array>}
+ */
+export async function fetchAdmins() {
+    const { data, error } = await supabase
+        .from('admin')
+        .select('adminName, email, adminID, userID, isAccepted')
+        .eq('isAccepted', true);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
 }
 
 /**
@@ -44,69 +64,81 @@ export async function deleteAdmin(adminID) {
 }
 
 /**
- * Fetch pending registrations (students and transients)
- * @returns {Promise<{students: Array, transients: Array}>}
- */
-export async function fetchPendingRegistrations() {
-    // Fetch pending students
-    const { data: students, error: studentsError } = await supabase
-        .from('Students')
-        .select('*')
-        .is('isApproved', null);
-
-    if (studentsError) {
-        throw studentsError;
-    }
-
-    // Fetch pending transients
-    const { data: transients, error: transientsError } = await supabase
-        .from('Transient')
-        .select('*')
-        .is('isApproved', null);
-
-    if (transientsError) {
-        throw transientsError;
-    }
-
-    return { students, transients };
-}
-
-/**
- * Approve a student or transient registration
- * @param {string} id - Student number or transient ID
- * @param {string} type - 'student' or 'transient'
+ * Approve a registration request
+ * @param {string} id - The original_entity_id (userID for student/admin, transientID for transient)
+ * @param {string} type - 'student', 'transient', or 'admin'
  * @returns {Promise<void>}
  */
 export async function approveRegistration(id, type) {
-    const table = type === 'student' ? 'Students' : 'Transient';
-    const idColumn = type === 'student' ? 'studentNumber' : 'transientID';
+    if (type === 'transient') {
+        const { error } = await supabase
+            .from('Transient')
+            .update({ isAccepted: true })
+            .eq("transientID", id);
+        if (error) throw error;
 
-    const { error } = await supabase
-        .from(table)
-        .update({ isApproved: true })
-        .eq(idColumn, id);
+    } else if (type === 'student') {
+        // Need to fetch studentNumber first because the ID passed is likely userID (based on original code)
+        // Original code: const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
+        const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
 
-    if (error) {
-        throw error;
+        if (!studentNumber) {
+            throw new Error("Student number not found for the given userID");
+        }
+
+        const { error } = await supabase
+            .from('Students')
+            .update({ isAssessed: true }) // Original code uses isAssessed
+            .eq("studentNumber", studentNumber);
+        if (error) throw error;
+
+    } else if (type === 'admin') {
+        const { error } = await supabase
+            .from("admin")
+            .update({ isAccepted: true })
+            .eq("userID", id);
+        if (error) throw error;
+
+    } else {
+        throw new Error(`Unknown type: ${type}`);
     }
 }
 
 /**
- * Deny a student or transient registration
- * @param {string} id - Student number or transient ID
- * @param {string} type - 'student' or 'transient'
+ * Deny (Delete) a registration request
+ * @param {string} id - The original_entity_id
+ * @param {string} type - 'student', 'transient', or 'admin' 
  * @returns {Promise<void>}
  */
 export async function denyRegistration(id, type) {
-    const table = type === 'student' ? 'Students' : 'Transient';
-    const idColumn = type === 'student' ? 'studentNumber' : 'transientID';
+    if (type === 'transient') {
+        const { error } = await supabase
+            .from('Transient')
+            .delete()
+            .eq("transientID", id);
+        if (error) throw error;
 
-    const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq(idColumn, id);
+    } else if (type === 'student') {
+        const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
 
-    if (error) {
-        throw error;
+        if (!studentNumber) {
+            throw new Error("Student number not found for the given userID");
+        }
+
+        const { error } = await supabase
+            .from('Students')
+            .delete()
+            .eq("studentNumber", studentNumber);
+        if (error) throw error;
+
+    } else if (type === 'admin') {
+        const { error } = await supabase
+            .from('admin')
+            .delete()
+            .eq("userID", id);
+        if (error) throw error;
+
+    } else {
+        throw new Error(`Unknown type: ${type}`);
     }
 }

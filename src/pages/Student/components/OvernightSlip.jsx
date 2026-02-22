@@ -1,52 +1,57 @@
-import supabase from "../../../supabase_client";
-import React, { useState, useEffect } from "react";
-import { getSession } from "../../../getSession";
-import { fetchColumnValue } from "../../../fetchColumnValue";
+import React, { useState } from "react";
+import { useGlobalContext } from "../../../context/GlobalContext";
+import { useStudentOvernightSlips, useCreateOvernightSlip } from "../../../hooks/useOverstayPermits";
+import Loading from "../../../components/Loading";
 
 const OvernightSlipSection = () => {
+  const { studentNumber } = useGlobalContext();
 
-  useEffect(() => {
-    fetchOvernightSlips();
-  }, []);
+  // Queries
+  const { data: overnightSlips = [], isLoading } = useStudentOvernightSlips(studentNumber);
+
+  // Mutations
+  const createSlipMutation = useCreateOvernightSlip();
 
   const [formData, setFormData] = useState({
-    fromDate : '',
-    toDate : '',
-    reason : '',
-    signature : '',
+    fromDate: '',
+    toDate: '',
+    reason: '',
+    signature: '',
   });
-  const [overnightSlips, setOvernightSlips] = useState([]);
-  const [student_number, setStudent_number] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Convert datetime-local values to proper UTC timestamps
-    const fromDateUTC = new Date(formData.fromDate).toISOString();
-    const toDateUTC = new Date(formData.toDate).toISOString();
-    
-    const {error} = await supabase.from("Overnight_Excuse").insert({
-      fromDate : fromDateUTC,
-      toDate : toDateUTC,
-      studentNumber : student_number,
-      reason : formData.reason
-    });
 
-    if(error){
-      console.log("Error in inserting the new data: ", error.message);
+    if (!formData.signature) {
+      alert("Please sign the form by typing your name.");
       return;
     }
-    
-    // Refresh the list after successful submission
-    fetchOvernightSlips();
-    
-    // Reset form
-    setFormData({
-      fromDate : '',
-      toDate : '',
-      reason : '',
-      signature : '',
-    });
+
+    try {
+      // Convert datetime-local values to proper UTC timestamps
+      const fromDateUTC = new Date(formData.fromDate).toISOString();
+      const toDateUTC = new Date(formData.toDate).toISOString();
+
+      await createSlipMutation.mutateAsync({
+        studentNumber,
+        fromDate: fromDateUTC,
+        toDate: toDateUTC,
+        reason: formData.reason,
+      });
+
+      // Reset form
+      setFormData({
+        fromDate: '',
+        toDate: '',
+        reason: '',
+        signature: '',
+      });
+
+      alert("Overnight slip submitted successfully.");
+    } catch (error) {
+      console.error("Error submitting slip:", error);
+      alert("Error submitting slip: " + error.message);
+    }
   };
 
   const handleChange = (e) => {
@@ -57,38 +62,41 @@ const OvernightSlipSection = () => {
     }));
   };
 
-  const fetchOvernightSlips = async () => {
-    const session_temp = await getSession();
-    const student_num = await fetchColumnValue("Students", "userID", session_temp.session.user.id, "studentNumber");
-    setStudent_number(student_num);
-    const {data, error} = await supabase.from("Overnight_Excuse").select("*").eq("studentNumber", student_num);
-    if (error){
-      console.log("Error in fetching overnight slips: ", error.message);
-      return;
-    }
-
-    setOvernightSlips(data || []);
-    console.log("Overnight slips fetched: ", data);
-  }
-
   // Helper function to render status badges
   const renderStatusBadge = (status, type) => {
     let bgColor, textColor, displayText;
-    
-    if (status === null) {
-      bgColor = "bg-gray-400";
-      textColor = "text-white";
-      displayText = "Unevaluated";
-    } else if (status === true) {
-      bgColor = "bg-green-500";
-      textColor = "text-white";
-      displayText = "Approved";
-    } else {
-      bgColor = "bg-red-500";
-      textColor = "text-white";
-      displayText = "Denied";
+
+    // Status logic: 
+    // approved (isApproved) can be null (pending), true (approved), false (denied)
+    // validated (isValidated) can be null (not validated yet), true (validated)
+
+    if (type === 'approved') {
+      if (status === null) {
+        bgColor = "bg-gray-400";
+        textColor = "text-white";
+        displayText = "Unevaluated";
+      } else if (status === true) {
+        bgColor = "bg-green-500";
+        textColor = "text-white";
+        displayText = "Approved";
+      } else {
+        bgColor = "bg-red-500";
+        textColor = "text-white";
+        displayText = "Denied";
+      }
+    } else { // Validated
+      // Only relevant if approved is true, but we can just show status
+      if (status === true) {
+        bgColor = "bg-blue-500";
+        textColor = "text-white";
+        displayText = "Validated";
+      } else {
+        bgColor = "bg-gray-300";
+        textColor = "text-gray-700";
+        displayText = "Pending";
+      }
     }
-    
+
     return (
       <span className={`${bgColor} ${textColor} px-3 py-1 rounded-xl text-xs font-medium`}>
         {displayText}
@@ -99,6 +107,9 @@ const OvernightSlipSection = () => {
   return (
     <div className="bg-white border border-[#4E0303] shadow-md rounded-lg p-4 sm:p-6 font-zion text-sm text-gray-800">
       <h2 className="text-sm sm:text-base font-semibold text-[#4E0303] mb-4 sm:mb-2">Overnight Slip</h2>
+
+      {createSlipMutation.isPending && <Loading />}
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 mb-6 text-xs sm:text-sm mt-6">
 
@@ -146,7 +157,7 @@ const OvernightSlipSection = () => {
         <div className="text-justify italic mb-15 text-[0.6rem] sm:text-xs">
           I certify that the information that I provided above is true. It is understood that by submitting this request, I should come back to the dormitory on the date specified; otherwise, I shall be sanctioned accordingly. It has also come to my understanding that I should hold full responsibility over my personal safety while I am outside dormitory premises.
         </div>
-        
+
         <div className="flex justify-between">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 sm:gap-y-6 gap-x-8">
             <div className="text-center">
@@ -163,11 +174,14 @@ const OvernightSlipSection = () => {
             </div>
           </div>
 
-          <button type='submit' className='bg-[#4E0303] text-white p-4 rounded-2xl mt-5 hover:bg-gray-500 m-3'>
-            Submit
+          <button
+            type='submit'
+            disabled={createSlipMutation.isPending}
+            className={`bg-[#4E0303] text-white p-4 rounded-2xl mt-5 hover:bg-gray-500 m-3 ${createSlipMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {createSlipMutation.isPending ? 'Submitting...' : 'Submit'}
           </button>
         </div>
-        {/* Signatures */}
 
       </form>
 
@@ -182,7 +196,13 @@ const OvernightSlipSection = () => {
             </tr>
           </thead>
           <tbody>
-            {overnightSlips.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan="4" className="px-4 py-4 text-center text-gray-500 text-xs sm:text-sm">
+                  Loading...
+                </td>
+              </tr>
+            ) : overnightSlips.length === 0 ? (
               <tr>
                 <td colSpan="4" className="px-4 py-4 text-center text-gray-500 text-xs sm:text-sm">
                   No overnight slips submitted.

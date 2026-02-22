@@ -1,429 +1,240 @@
-import { useEffect, useState } from "react";
-import supabase from "../../../supabase_client";
-import Loading from "../../../components/Loading"; // 1. Import the Loading component
+import React, { useState } from 'react';
+import { useGlobalContext } from '../../../context/GlobalContext';
+import {
+  usePendingApprovalPermits,
+  usePendingValidationPermits,
+  useApprovePermit,
+  useDenyPermit,
+  useValidatePermit
+} from '../../../hooks/useOverstayPermits';
 
-function AdminPage_overstayPermits() {
-
-  const [pendingApproval, setPendingApproval] = useState([]);
-  const [pendingValidation, setPendingValidation] = useState([]);
-  const [selectedRequest, setSelectedRequest] = useState(null);
+export default function AdminPage_overstayPermits() {
+  const { adminID } = useGlobalContext();
   const [activeTab, setActiveTab] = useState('approval'); // 'approval' or 'validation'
-  const [currentAdminId, setCurrentAdminId] = useState(null);
-  // 2. State for loading status
-  const [isLoading, setIsLoading] = useState(false); 
 
-  const fetchPendingApproval = async () => {
-    setIsLoading(true); // Show loading
+  // Fetch permits using TanStack Query
+  const { data: pendingApprovalPermits = [], isLoading: isLoadingApproval } = usePendingApprovalPermits();
+  const { data: pendingValidationPermits = [], isLoading: isLoadingValidation } = usePendingValidationPermits();
+
+  // Mutations
+  const approvePermitMutation = useApprovePermit();
+  const denyPermitMutation = useDenyPermit();
+  const validatePermitMutation = useValidatePermit();
+
+  const isLoading = isLoadingApproval || isLoadingValidation ||
+    approvePermitMutation.isPending ||
+    denyPermitMutation.isPending ||
+    validatePermitMutation.isPending;
+
+  const handleApprove = async (requestId) => {
     try {
-      const { data, error } = await supabase
-        .from("Overnight_Excuse")
-        .select(`
-          *,
-          Students!Overnight_Excuse_studentNumber_fkey (
-            studentName,
-            Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
-              isAllowed_WeekendsWithRelatives_or_guardians,
-              isAllowed_spendOvernightWithFriends_or_dormmates,
-              isAllowed_joinDemonstrations_or_rallies,
-              whatIllnesses,
-              otherAdditionalInstruction,
-              Allowed_ToGoHomeInWeekends,
-              Allowed_ToGoHomeInWeekdays,
-              isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
-            )
-          )
-        `)
-        .is("isApproved", null);
-      
-      if (error) {
-        console.log("Error fetching pending approvals:", error.message);
-        return;
-      }
-      
-      setPendingApproval(data || []);
-      if (data && data.length > 0 && !selectedRequest) {
-        setSelectedRequest(data[0]);
-      }
-    } catch (e) {
-      console.error("An error occurred during fetchPendingApproval:", e);
-    } finally {
-      setIsLoading(false); // Hide loading
+      await approvePermitMutation.mutateAsync({ requestId, adminID });
+      console.log(`Permit ${requestId} approved successfully`);
+    } catch (error) {
+      console.error('Error approving permit:', error);
+      alert('Error approving permit: ' + error.message);
     }
   };
 
-  const fetchPendingValidation = async () => {
-    setIsLoading(true); // Show loading
+  const handleDeny = async (requestId) => {
     try {
-      const { data, error } = await supabase
-        .from("Overnight_Excuse")
-        .select(`
-          *,
-          Students!Overnight_Excuse_studentNumber_fkey (
-            studentName,
-            Information_and_Instruction_Sheet!Information_and_Instruction_Sheet_studentNumber_fkey (
-              isAllowed_WeekendsWithRelatives_or_guardians,
-              isAllowed_spendOvernightWithFriends_or_dormmates,
-              isAllowed_joinDemonstrations_or_rallies,
-              whatIllnesses,
-              otherAdditionalInstruction,
-              Allowed_ToGoHomeInWeekends,
-              Allowed_ToGoHomeInWeekdays,
-              isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions
-            )
-          )
-        `)
-        .eq("isApproved", true)
-        .is("isValidated", null);
-      
-      if (error) {
-        console.log("Error fetching pending validations:", error.message);
-        return;
-      }
-      
-      setPendingValidation(data || []);
-    } catch (e) {
-      console.error("An error occurred during fetchPendingValidation:", e);
-    } finally {
-      setIsLoading(false); // Hide loading
+      await denyPermitMutation.mutateAsync({ requestId, adminID });
+      console.log(`Permit ${requestId} denied successfully`);
+    } catch (error) {
+      console.error('Error denying permit:', error);
+      alert('Error denying permit: ' + error.message);
     }
   };
 
-  // Get current admin info
-  const getCurrentAdmin = async () => {
-    setIsLoading(true); // Show loading
+  const handleValidate = async (requestId) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: adminData, error } = await supabase
-          .from('admin')
-          .select('adminID')
-          .eq('userID', user.id)
-          .single();
-        
-        if (!error && adminData) {
-          setCurrentAdminId(adminData.adminID);
-        }
-      }
-    } catch (e) {
-      console.error("An error occurred during getCurrentAdmin:", e);
-    } finally {
-      setIsLoading(false); // Hide loading
+      await validatePermitMutation.mutateAsync({ requestId, adminID });
+      console.log(`Permit ${requestId} validated successfully`);
+    } catch (error) {
+      console.error('Error validating permit:', error);
+      alert('Error validating permit: ' + error.message);
     }
   };
 
-  const handleApprove = async (requestId, isApproval = true) => {
-    if (!currentAdminId) {
-      console.log("Admin ID not found");
-      return;
-    }
-
-    setIsLoading(true); // Show loading
-
-    let updateData = {};
-    
-    if (isApproval) {
-      // For approval: set approval fields, leave validation fields null
-      updateData = {
-        isApproved: true,
-        approvedby_adminID: currentAdminId,
-        approvedOn: new Date().toISOString(),
-        isValidated: null,
-        validatedby_adminID: null,
-        validatedOn: null
-      };
-    } else {
-      // For validation: only set validation fields
-      updateData = {
-        isValidated: true,
-        validatedby_adminID: currentAdminId,
-        validatedOn: new Date().toISOString()
-      };
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("Overnight_Excuse")
-        .update(updateData)
-        .eq('overnightExcuseID', requestId);
-
-      if (error) {
-        console.log(`Error ${isApproval ? 'approving' : 'validating'} request:`, error.message);
-        return;
-      }
-
-      // Refresh both lists
-      await fetchPendingApproval();
-      await fetchPendingValidation();
-      
-      // Update selected request if it was the one we just processed
-      if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
-        const updatedList = isApproval ? pendingApproval : pendingValidation;
-        const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
-        setSelectedRequest(nextRequest || null);
-      }
-    } catch (e) {
-      console.error("An error occurred during handleApprove:", e);
-    } finally {
-      setIsLoading(false); // Hide loading
-    }
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
-
-  const handleDeny = async (requestId, isApproval = true) => {
-    if (!currentAdminId) {
-      console.log("Admin ID not found");
-      return;
-    }
-
-    setIsLoading(true); // Show loading
-
-    let updateData = {};
-    
-    if (isApproval) {
-      // For approval denial: set approval fields to false, leave validation fields null
-      updateData = {
-        isApproved: false,
-        approvedby_adminID: currentAdminId,
-        approvedOn: new Date().toISOString(),
-        isValidated: null,
-        validatedby_adminID: null,
-        validatedOn: null
-      };
-    } else {
-      // For validation denial: only set validation fields
-      updateData = {
-        isValidated: false,
-        validatedby_adminID: currentAdminId,
-        validatedOn: new Date().toISOString()
-      };
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("Overnight_Excuse")
-        .update(updateData)
-        .eq('overnightExcuseID', requestId);
-
-      if (error) {
-        console.log(`Error denying request:`, error.message);
-        return;
-      }
-
-      // Refresh both lists
-      await fetchPendingApproval();
-      await fetchPendingValidation();
-      
-      // Update selected request if it was the one we just processed
-      if (selectedRequest && selectedRequest.overnightExcuseID === requestId) {
-        const updatedList = isApproval ? pendingApproval : pendingValidation;
-        const nextRequest = updatedList.find(req => req.overnightExcuseID !== requestId);
-        setSelectedRequest(nextRequest || null);
-      }
-    } catch (e) {
-      console.error("An error occurred during handleDeny:", e);
-    } finally {
-      setIsLoading(false); // Hide loading
-    }
-  };
-
-  const handleCardClick = (request) => {
-    setSelectedRequest(request);
-  };
-
-  const formatBooleanPermission = (value) => {
-    if (value === null) return "Not specified";
-    return value ? "Allowed" : "Not allowed";
-  };
-
-  useEffect(() => {
-    getCurrentAdmin();
-    // Use a single function to fetch all data to manage the initial loading state efficiently
-    const fetchAllData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchPendingApproval(), fetchPendingValidation()]);
-      setIsLoading(false);
-    };
-    fetchAllData();
-  }, []);
-
-  const currentList = activeTab === 'approval' ? pendingApproval : pendingValidation;
-  const isApprovalTab = activeTab === 'approval';
-  
-  // Filter out the selected request from the cards list
-  const filteredList = currentList.filter(request => 
-    !selectedRequest || selectedRequest.overnightExcuseID !== request.overnightExcuseID
-  );
 
   return (
-    <>
-      {/* 4. Conditionally render Loading component */}
-      {isLoading && <Loading />}
+    <div className='bg-white min-h-screen p-6'>
+      <div className='max-w-7xl mx-auto'>
+        <h1 className='text-2xl md:text-3xl font-bold text-black mb-6 zain-regular'>
+          Overstay Permits Management
+        </h1>
 
-      {/* Tab Navigation */}
-      <div className="flex justify-center mb-4">
-        <div className="bg-gray-200 rounded-lg p-1">
+        {/* Tabs */}
+        <div className='flex gap-4 mb-6 border-b border-gray-200'>
           <button
             onClick={() => setActiveTab('approval')}
-            className={`px-6 py-2 rounded-md transition-colors ${
-              activeTab === 'approval' 
-                ? 'bg-[#4E0303] text-white' 
-                : 'bg-transparent text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'approval'
+                ? 'text-[#114516] border-b-2 border-[#114516]'
+                : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
-            Pending Approval ({pendingApproval.length})
+            Pending Approval ({pendingApprovalPermits.length})
           </button>
           <button
             onClick={() => setActiveTab('validation')}
-            className={`px-6 py-2 rounded-md transition-colors ${
-              activeTab === 'validation' 
-                ? 'bg-[#4E0303] text-white' 
-                : 'bg-transparent text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'validation'
+                ? 'text-[#114516] border-b-2 border-[#114516]'
+                : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
-            Pending Validation ({pendingValidation.length})
+            Pending Validation ({pendingValidationPermits.length})
           </button>
         </div>
-      </div>
 
-      <div className='lg:grid lg:grid-cols-3 lg:gap-2'>
-
-        <div className='justify-center flex mb-10 lg:col-span-2'>
-          <div className='w-[95%] h-fit bg-white mt-6 rounded-4xl border-2 border-black text-black'>
-            {selectedRequest ? (
-              <>
-                {/* This part is the quickinfo part, this will provide the info about student, name and reason */}
-                <div className='zain-regular text-[12px] p-5'>
-                  {/* This part is the upper part */}
-                  <div className='grid grid-cols-3 lg:text-[20px] '>
-                    <p className='col-span-2'>
-                      Name: {selectedRequest.Students?.studentName || 'N/A'}
-                    </p>
-                    <p className='col-span-1'>Student #: {selectedRequest.studentNumber}</p>
-                  </div>
-                  <p className='mt-5 lg:text-[20px] '>Duration:</p>
-                  <div className='flex lg:text-[20px] gap-8'>
-                    <p className=''>From: {new Date(selectedRequest.fromDate).toLocaleString()}</p>
-                    <p className=''>To: {new Date(selectedRequest.toDate).toLocaleString()}</p>
-                  </div>
-
-                  <div className='mt-4 lg:text-[20px] ' >
-                    <p>Reason for Overnight Slip: {selectedRequest.reason}</p>
-                  </div>
-                </div>
-
-                {/* This part is where we can compare the medical and permission info */}
-                <div className=' border-t-3 border-b-3 mb-5 grid grid-cols-2 zain-regular lg:text-[14px] '>
-                  {/* Left Part - Medical & Instructions */}
-                  <div className='border-r-3 border-black p-3'>
-                    <p className="font-semibold mb-2">Medical & Instructions:</p>
-                    <div className="space-y-1 text-xs">
-                      <p><strong>Illnesses:</strong> {selectedRequest.Students?.Information_and_Instruction_Sheet?.whatIllnesses || 'None reported'}</p>
-                      <p><strong>Additional Instructions:</strong> {selectedRequest.Students?.Information_and_Instruction_Sheet?.otherAdditionalInstruction || 'None'}</p>
-                    </div>
-                  </div>
-                  {/* Right Part - Permissions */}
-                  <div className='p-3'>
-                    <p className="font-semibold mb-2">Permissions:</p>
-                    <div className="space-y-1 text-xs">
-                      <p><strong>Weekend w/ Relatives:</strong> {formatBooleanPermission(selectedRequest.Students?.Information_and_Instruction_Sheet?.isAllowed_WeekendsWithRelatives_or_guardians)}</p>
-                      <p><strong>Overnight w/ Friends:</strong> {formatBooleanPermission(selectedRequest.Students?.Information_and_Instruction_Sheet?.isAllowed_spendOvernightWithFriends_or_dormmates)}</p>
-                      <p><strong>School Field Trips:</strong> {formatBooleanPermission(selectedRequest.Students?.Information_and_Instruction_Sheet?.isAllowed_joinSchoolRelatedFieldTripsOrPicnicsOrExcursions)}</p>
-                      <p><strong>Demonstrations/Rallies:</strong> {formatBooleanPermission(selectedRequest.Students?.Information_and_Instruction_Sheet?.isAllowed_joinDemonstrations_or_rallies)}</p>
-                      <p><strong>Home (Weekends):</strong> {selectedRequest.Students?.Information_and_Instruction_Sheet?.Allowed_ToGoHomeInWeekends || 'Not specified'}</p>
-                      <p><strong>Home (Weekdays):</strong> {selectedRequest.Students?.Information_and_Instruction_Sheet?.Allowed_ToGoHomeInWeekdays || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-                {/* This is for the buttons */}
-                <div className='flex justify-end mr-5'>
-                  <button 
-                    onClick={() => handleApprove(selectedRequest.overnightExcuseID, isApprovalTab)}
-                    className='bg-green-600 text-white rounded-2xl px-5 py-2 ml-5 mb-5 hover:bg-green-700'
-                  >
-                    {isApprovalTab ? 'Approve' : 'Validate'}
-                  </button>
-                  <button 
-                    onClick={() => handleDeny(selectedRequest.overnightExcuseID, isApprovalTab)}
-                    className='bg-red-600 text-white rounded-2xl px-5 py-2 ml-5 mb-5 hover:bg-red-700'
-                  >
-                    Deny
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-64">
-                <p className="text-gray-500 text-lg">
-                  No {isApprovalTab ? 'pending approvals' : 'pending validations'} at this time
-                </p>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className='text-center py-8'>
+            <div className='text-gray-500'>Loading permits...</div>
+          </div>
+        ) : (
+          <>
+            {/* Pending Approval Tab */}
+            {activeTab === 'approval' && (
+              <div className='overflow-x-auto shadow-lg rounded-lg'>
+                <table className='w-full bg-white border border-gray-200'>
+                  <thead className='bg-gray-50'>
+                    <tr>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Student
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        From Date
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        To Date
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Reason
+                      </th>
+                      <th className='px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='bg-white divide-y divide-gray-200'>
+                    {pendingApprovalPermits.length === 0 ? (
+                      <tr>
+                        <td colSpan='5' className='px-6 py-8 text-center text-gray-500'>
+                          No permits pending approval.
+                        </td>
+                      </tr>
+                    ) : (
+                      pendingApprovalPermits.map((permit, index) => (
+                        <tr key={permit.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {permit.Students?.studentName || permit.studentNumber}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {formatDate(permit.fromDate)}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {formatDate(permit.toDate)}
+                          </td>
+                          <td className='px-6 py-4 text-sm text-gray-900'>
+                            {permit.reason || 'No reason provided'}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-center'>
+                            <div className='flex justify-center space-x-2'>
+                              <button
+                                onClick={() => handleApprove(permit.id)}
+                                className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleDeny(permit.id)}
+                                className='bg-[#4E0303] hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              >
+                                Deny
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* The next div is for cards */}
-        <div className='m-4 justify-center grid grid-cols-2 gap-2 lg:col-span-1 h-[500px] overflow-y-auto'>
-          {filteredList.length === 0 ? (
-            <div className="col-span-2 flex items-center justify-center h-32">
-              <p className="text-gray-500">
-                {currentList.length === 0 
-                  ? `No ${isApprovalTab ? 'pending approvals' : 'pending validations'}`
-                  : 'Selected request is currently displayed above'
-                }
-              </p>
-            </div>
-          ) : (
-            filteredList.map((request) => (
-              <div 
-                key={request.overnightExcuseID}
-                onClick={() => handleCardClick(request)}
-                className="border-2 border-black p-2 rounded-2xl zain-regular text-black h-fit hover:bg-gray-50 cursor-pointer"
-              >
-                <div className='zain-regular'>
-                  <p>Name: {request.Students?.studentName || 'N/A'}</p>
-                  <p>Student #: {request.studentNumber}</p>
-                  <p>Duration:</p>
-                  <div className='ml-4 text-xs'>
-                    <p>From: {new Date(request.fromDate).toLocaleDateString()}</p>
-                    <p>To: {new Date(request.toDate).toLocaleDateString()}</p>
-                  </div>
-                  <hr className="my-2"/>
-                  <p className="text-xs text-gray-600 truncate">Reason: {request.reason}</p>
-                </div>
-                <div className='flex justify-between items-center mt-2'>
-                  <button 
-                    onClick={() => handleCardClick(request)}
-                    className='p-2 bg-blue-600 mt-1 rounded-2xl text-white zain-regular hover:bg-blue-700 text-xs' 
-                  >
-                    Select
-                  </button>
-                  <div className='flex gap-2'>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApprove(request.overnightExcuseID, isApprovalTab);
-                      }}
-                      className='p-2 bg-green-600 mt-1 rounded-2xl text-white zain-regular w-15 hover:bg-green-700 text-xs' 
-                    >
-                      {isApprovalTab ? 'Approve' : 'Validate'}
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeny(request.overnightExcuseID, isApprovalTab);
-                      }}
-                      className='p-2 bg-red-600 mt-1 rounded-2xl text-white zain-regular w-15 hover:bg-red-700 text-xs' 
-                    >
-                      Deny
-                    </button>
-                  </div>
-                </div>
+            {/* Pending Validation Tab */}
+            {activeTab === 'validation' && (
+              <div className='overflow-x-auto shadow-lg rounded-lg'>
+                <table className='w-full bg-white border border-gray-200'>
+                  <thead className='bg-gray-50'>
+                    <tr>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Student
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        From Date
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        To Date
+                      </th>
+                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Reason
+                      </th>
+                      <th className='px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b'>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='bg-white divide-y divide-gray-200'>
+                    {pendingValidationPermits.length === 0 ? (
+                      <tr>
+                        <td colSpan='5' className='px-6 py-8 text-center text-gray-500'>
+                          No permits pending validation.
+                        </td>
+                      </tr>
+                    ) : (
+                      pendingValidationPermits.map((permit, index) => (
+                        <tr key={permit.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {permit.Students?.studentName || permit.studentNumber}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {formatDate(permit.fromDate)}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                            {formatDate(permit.toDate)}
+                          </td>
+                          <td className='px-6 py-4 text-sm text-gray-900'>
+                            {permit.reason || 'No reason provided'}
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-center'>
+                            <div className='flex justify-center space-x-2'>
+                              <button
+                                onClick={() => handleValidate(permit.id)}
+                                className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              >
+                                Validate
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            ))
-          )}
-        </div>
-
+            )}
+          </>
+        )}
       </div>
-    </>
-  )
+    </div>
+  );
 }
-
-export default AdminPage_overstayPermits

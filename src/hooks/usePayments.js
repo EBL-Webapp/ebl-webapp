@@ -2,26 +2,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as paymentsService from '../services/paymentsService';
 
 /**
- * Custom hooks for payments using TanStack Query
+ * Custom hooks for payments and charges using TanStack Query
  */
 
 /**
- * Hook to fetch students with payment information
+ * Hook to fetch students with payment info (paginated)
  * @param {number} page - Page number
  * @param {number} limit - Items per page
  * @param {string} searchTerm - Search term
- * @returns {Object} Query object with students payment data
+ * @returns {Object} Query object with students data
  */
 export function useStudentsWithPayments(page, limit, searchTerm = '') {
     return useQuery({
         queryKey: ['students', 'payments', page, limit, searchTerm],
         queryFn: () => paymentsService.fetchStudentsWithPayments(page, limit, searchTerm),
+        keepPreviousData: true,
     });
 }
 
 /**
- * Hook to fetch static charges
- * @returns {Object} Query object with static charges
+ * Hook to fetch static charges (rent, surcharge)
+ * @returns {Object} Query object with charges object
  */
 export function useStaticCharges() {
     return useQuery({
@@ -31,13 +32,26 @@ export function useStaticCharges() {
 }
 
 /**
- * Hook to fetch appliances
+ * Hook to fetch all appliances (list of available appliances)
  * @returns {Object} Query object with appliances
  */
 export function useAppliances() {
     return useQuery({
         queryKey: ['appliances'],
         queryFn: paymentsService.fetchAppliances,
+    });
+}
+
+/**
+ * Hook to fetch appliances owned by a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Object} Query object with student's appliances
+ */
+export function useStudentAppliances(studentNumber) {
+    return useQuery({
+        queryKey: ['appliances', 'student', studentNumber],
+        queryFn: () => paymentsService.fetchStudentAppliances(studentNumber),
+        enabled: !!studentNumber,
     });
 }
 
@@ -51,27 +65,8 @@ export function useCreatePayment() {
     return useMutation({
         mutationFn: ({ studentNumber, adminID, paymentAmount, referenceID }) =>
             paymentsService.createPayment(studentNumber, adminID, paymentAmount, referenceID),
-        onSuccess: (_, variables) => {
-            // Invalidate students payment queries
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
-            queryClient.invalidateQueries({ queryKey: ['students', variables.studentNumber] });
-        },
-    });
-}
-
-/**
- * Hook to update student balance
- * @returns {Object} Mutation object
- */
-export function useUpdateStudentBalance() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: ({ studentNumber, newBalance }) =>
-            paymentsService.updateStudentBalance(studentNumber, newBalance),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
-            queryClient.invalidateQueries({ queryKey: ['students', variables.studentNumber] });
         },
     });
 }
@@ -93,7 +88,7 @@ export function useUpdateStaticCharge() {
 }
 
 /**
- * Hook to create an appliance
+ * Hook to create a new appliance type
  * @returns {Object} Mutation object
  */
 export function useCreateAppliance() {
@@ -109,7 +104,7 @@ export function useCreateAppliance() {
 }
 
 /**
- * Hook to delete an appliance
+ * Hook to delete an appliance type
  * @returns {Object} Mutation object
  */
 export function useDeleteAppliance() {
@@ -133,9 +128,8 @@ export function useTriggerMonthlyCharges() {
     return useMutation({
         mutationFn: (adminID) => paymentsService.triggerMonthlyCharges(adminID),
         onSuccess: () => {
-            // Invalidate all student payment data after monthly charges
+            // Invalidate student payments as balances will change
             queryClient.invalidateQueries({ queryKey: ['students', 'payments'] });
-            queryClient.invalidateQueries({ queryKey: ['students', 'list'] });
         },
     });
 }

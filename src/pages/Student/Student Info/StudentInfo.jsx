@@ -7,34 +7,27 @@ import Footer from '@/components/Footer';
 import { useRedirect } from "../../../redirect";
 import { useEffect } from "react";
 
-const StudentPage = () => {
-
+const StudentInfo = () => {
   const redirect = useRedirect();
+
   useEffect(() => {
     const runRedirect = async () => {
       await redirect("student");
     };
-
     runRedirect();
-  }, [redirect])
+  }, [redirect]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-50">
-        <Header 
-          variant="student" 
-          isLoggedIn={true} 
-          userName="Juan Dela Cruz" 
-          userId="2021-12345" 
-          onLogout={() => {
-            localStorage.clear();
-            window.location.href = "/";
-          }}
+        <Header
+          variant="student"
+          isLoggedIn={true}
         />
       </div>
 
-      <div className="pt-15 sm:pt-20 flex flex-1"> {/* pt-20 = height of header */}
+      <div className="pt-15 sm:pt-20 flex flex-1">
         {/* Fixed Sidebar */}
         <div className="fixed">
           <SIVerticalNavbar />
@@ -48,11 +41,11 @@ const StudentPage = () => {
               <div id="acknowledgement" className="scroll-mt-26"><Acknowledgement /></div>
             </div>
           </div>
-        </main> 
+        </main>
       </div>
       <Footer />
     </div>
   );
 };
 
-export default StudentPage;
+export default StudentInfo;

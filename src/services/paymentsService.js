@@ -140,6 +140,25 @@ export async function fetchAppliances() {
 }
 
 /**
+ * Fetch appliances for a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Promise<Array>}
+ */
+export async function fetchStudentAppliances(studentNumber) {
+    const { data, error } = await supabase
+        .from("appliance_per_student")
+        .select("*, list_of_appliances (applianceName, cost)")
+        .eq("studentNumber", studentNumber)
+        .neq("quantity", 0);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+/**
  * Create a new appliance
  * @param {string} applianceName - Appliance name
  * @param {number} cost - Appliance cost
