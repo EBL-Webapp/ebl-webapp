@@ -9,9 +9,7 @@ function NoUpdate() {
     const navigate = useNavigate();
 
     const [userName, setUserName] = useState('Unidentified User');
-    const [desiredRole, setDesiredRole] = useState('Unidentified Role');
     const [email, setEmail] = useState('Unknown Email');
-    const [decision, setDecision] = useState('the admin will confirm you soon, thanks...')
 
     // We have to get the sesssion
     useEffect(() => {
@@ -19,7 +17,7 @@ function NoUpdate() {
         console.log("Pumasok sa NoUpdate");
 
         const getData = async () => {
-            const {data : {session}, errorSession} = await supabase.auth.getSession();
+            const {data : {session}, error: errorSession} = await supabase.auth.getSession();
             if(errorSession){
                 console.log('Error in getting session data:', errorSession.message);
             }
@@ -31,7 +29,7 @@ function NoUpdate() {
     }, [])
 
     const handleLogout = async () => {
-        const {error} = await supabase.auth.signOut();
+        await supabase.auth.signOut();
         navigate('/');
     }
 
@@ -41,7 +39,7 @@ function NoUpdate() {
         <Header/>
 
 
-            <div className='bg-white h-[500px] flex flex-col justify-center items-center'>
+            <div className='bg-white h-125 flex flex-col justify-center items-center'>
                 <div className='mx-10'>
                     <p className='text-black zain-regular text-xl'>
                         Thanks for signing in, {userName} ({email}), the admin will confirm you soon... <br/><br/> 

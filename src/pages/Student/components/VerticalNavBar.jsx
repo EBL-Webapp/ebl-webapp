@@ -105,6 +105,7 @@ export default function VerticalNavbar() {
 
       {/* Navbar links */}
       <nav className="mt-2 sm:mt-6 space-y-2 px-2">
+  {/* eslint-disable-next-line no-unused-vars -- Icon is used as <Icon /> in JSX below */}
   {navLinks.map(({ label, icon: Icon, href }) => (
     <a
       key={label}

@@ -23,28 +23,32 @@ export function useStudentsWithPayments(page, limit, searchTerm = '') {
 /**
  * Hook to fetch static charges (rent, surcharge).
  * Uses staleTime: Infinity since this data changes very rarely (admin action required).
+ * @param {boolean} [enabled=true] - Whether the query should run
  * @returns {Object} Query object with charges object
  */
-export function useStaticCharges() {
+export function useStaticCharges(enabled = true) {
     return useQuery({
         queryKey: ['staticCharges'],
         queryFn: paymentsService.fetchStaticCharges,
         staleTime: Infinity,       // Never stale — only invalidated on mutation
         refetchInterval: false,    // No polling needed
+        enabled,
     });
 }
 
 /**
  * Hook to fetch all appliances (list of available appliances).
  * Uses staleTime: Infinity since the list changes via admin mutations only.
+ * @param {boolean} [enabled=true] - Whether the query should run
  * @returns {Object} Query object with appliances
  */
-export function useAppliances() {
+export function useAppliances(enabled = true) {
     return useQuery({
         queryKey: ['appliances'],
         queryFn: paymentsService.fetchAppliances,
         staleTime: Infinity,       // Never stale — only invalidated on mutation
         refetchInterval: false,    // No polling needed
+        enabled,
     });
 }
 

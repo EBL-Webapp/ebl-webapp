@@ -27,13 +27,19 @@ export function useRedirect() {
     // ─── 3. Query all roles ─────────────────────────────
     const [ { data: studentRows }, { data: adminRows }, { data: transientRows } ] =
       await Promise.all([
-        supabase.from("Students").select("userID").eq("userID", id),
+        supabase.from("Students").select("userID, isAssessed").eq("userID", id),
         supabase.from("admin").select("userID").eq("userID", id),
         supabase.from("Transient").select("userID").eq("userID", id),
       ]);
 
     let actualRole = null;
-    if (studentRows?.length > 0) actualRole = "student";
+    if (studentRows?.length > 0) {
+      if (!studentRows[0].isAssessed) {
+        navigate('/NoUpdate');
+        return;
+      }
+      actualRole = "student";
+    }
     else if (adminRows?.length > 0) actualRole = "admin";
     else if (transientRows?.length > 0) actualRole = "transient";
     else if (!isGoogleUser) actualRole = "visitor"; // fallback

@@ -133,7 +133,7 @@ export default function AdminPage_overstayPermits() {
                       </tr>
                     ) : (
                       pendingApprovalPermits.map((permit, index) => (
-                        <tr key={permit.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <tr key={permit.overnightExcuseID} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                           <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
                             {permit.Students?.studentName || permit.studentNumber}
                           </td>
@@ -149,13 +149,13 @@ export default function AdminPage_overstayPermits() {
                           <td className='px-6 py-4 whitespace-nowrap text-center'>
                             <div className='flex justify-center space-x-2'>
                               <button
-                                onClick={() => handleApprove(permit.id)}
+                                onClick={() => handleApprove(permit.overnightExcuseID)}
                                 className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                               >
                                 Approve
                               </button>
                               <button
-                                onClick={() => handleDeny(permit.id)}
+                                onClick={() => handleDeny(permit.overnightExcuseID)}
                                 className='bg-[#4E0303] hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                               >
                                 Deny
@@ -202,7 +202,7 @@ export default function AdminPage_overstayPermits() {
                       </tr>
                     ) : (
                       pendingValidationPermits.map((permit, index) => (
-                        <tr key={permit.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <tr key={permit.overnightExcuseID} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                           <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
                             {permit.Students?.studentName || permit.studentNumber}
                           </td>
@@ -218,7 +218,7 @@ export default function AdminPage_overstayPermits() {
                           <td className='px-6 py-4 whitespace-nowrap text-center'>
                             <div className='flex justify-center space-x-2'>
                               <button
-                                onClick={() => handleValidate(permit.id)}
+                                onClick={() => handleValidate(permit.overnightExcuseID)}
                                 className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                               >
                                 Validate

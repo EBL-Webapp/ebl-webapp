@@ -12,22 +12,22 @@ const Footer = () => {
             <img 
               src="/oble.png" 
               alt="UP Oblation" 
-              className="h-auto w-auto object-contain md:max-w-[180px] lg:max-w-[220px]" 
+              className="h-auto w-auto object-contain md:max-w-45 lg:max-w-55" 
               style={{ maxHeight: '280px' }}
             />
           </div>
           
           {/* Mobile header with Oblation and university name */}
           <div className="sm:hidden flex items-end mb-4">
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <img 
                 src="/oble.png" 
                 alt="UP Oblation" 
-                className="h-auto w-auto object-contain max-w-[100px]" 
+                className="h-auto w-auto object-contain max-w-25" 
                 style={{ maxHeight: '150px' }}
               />
             </div>
-            <div className="ml-4 flex-grow">
+            <div className="ml-4 grow">
               <div className="text-xl font-bold leading-tight">
                 <span className="block">UNIVERSITY</span>
                 <span className="block">OF THE</span>

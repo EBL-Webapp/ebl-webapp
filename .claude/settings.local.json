@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cd /d/2ndSem2025/GitRepo/127Website/ebl-webapp && npx eslint . 2>&1)",
+      "Bash(npx vite build)"
     ]
   }
 }

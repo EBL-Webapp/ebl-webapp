@@ -61,6 +61,7 @@ const TransientDashboard = () => {
   useEffect(() => {
     get_user_data()
     redirect('visitor')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
 
@@ -90,7 +91,7 @@ const TransientDashboard = () => {
     <div className="flex flex-col min-h-screen bg-white">
       <Header variant="transient" />
 
-      <main className="flex-grow px-6 py-12 lg:py-16 max-w-screen-xl mx-auto">
+      <main className="grow px-6 py-12 lg:py-16 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <img src={roomImage} alt="Transient Room" className="rounded-xl shadow-md w-full h-auto object-cover" />
@@ -98,7 +99,7 @@ const TransientDashboard = () => {
 
           <div className="space-y-7">
             <div className="space-y-3 ">
-              <h1 className="!text-3xl sm:!text-5xl font-bold text-[#4E0303] font-serif">Transient Accommodations</h1>
+              <h1 className="text-3xl! sm:text-5xl! font-bold text-[#4E0303] font-serif">Transient Accommodations</h1>
               <h2 className="text-base sm:text-xl text-[#114516]">designed with your stay in mind.</h2>
             </div>
 
@@ -152,7 +153,7 @@ const TransientDashboard = () => {
               ) : (
                 <div>
                   <h2 className="zain-regular text-black taxt-md">You have not yet logged in, log in now to book!</h2>
-                  <button onClick={() => handleSignUp()} className="text-black bg-white rounded-xl py-3 px-2 font-sans shadow-md shadow-gray border-1 border-gray-300">
+                  <button onClick={() => handleSignUp()} className="text-black bg-white rounded-xl py-3 px-2 font-sans shadow-md shadow-gray border border-gray-300">
                     Sign-in with Google
                   </button>
                 </div>

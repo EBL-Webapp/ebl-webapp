@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./config/queryClient";
+import { GlobalContextProvider } from "./context/GlobalContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
@@ -33,6 +37,9 @@ function App() {
   const [count, setCount] = useState(0);
 
   return (
+    <QueryClientProvider client={queryClient}>
+    <GlobalContextProvider>
+    <ErrorBoundary>
     <Router>
       <Routes>
         {/* Landing Page and Login */}
@@ -92,6 +99,9 @@ function App() {
         />
       </Routes>
     </Router>
+    </ErrorBoundary>
+    </GlobalContextProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -124,6 +124,7 @@ export default function VerticalNavbar() {
         </NavLink>
 
         {/* Anchor Links */}
+        {/* eslint-disable-next-line no-unused-vars -- Icon is used as <Icon /> in JSX below */}
         {navLinks.map(({ label, icon: Icon, href }) => (
           <a
           key={label}

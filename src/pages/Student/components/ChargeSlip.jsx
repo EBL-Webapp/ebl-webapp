@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { useGlobalContext } from '../../../context/GlobalContext';
 import { useStaticCharges, useStudentAppliances } from '../../../hooks/usePayments';
-import { useStudentInfo } from '../../../hooks/useStudents';
+import { useStudent } from '../../../hooks/useStudents';
 import Loading from '../../../components/Loading';
 
 const ChargeSlipSection = () => {
   const { studentNumber } = useGlobalContext();
 
-  // 1. Fetch Student Info (for Surplus/Deficit)
-  const { data: studentInfo = {}, isLoading: isLoadingStudent } = useStudentInfo(studentNumber);
+  // 1. Fetch Student record (for Surplus/Deficit balance)
+  const { data: studentInfo = {}, isLoading: isLoadingStudent } = useStudent(studentNumber);
 
   // 2. Fetch Static Charges (Rent, etc.)
   const { data: staticCharges = {}, isLoading: isLoadingCharges } = useStaticCharges();
@@ -52,7 +52,7 @@ const ChargeSlipSection = () => {
           </div> */}
           <div className="flex justify-between font-semibold">
             <span>Amount Due (May include missed payments):</span>
-            <p className='w-40 border-b-1'>{studentInfo.surplus_deficit_payment || 0}</p>
+            <p className='w-40 border-b text-red-600'>{studentInfo.surplus_deficit_payment || 0}</p>
           </div>
         </div>
       </div>

@@ -63,7 +63,7 @@ const DormitoryTransientForm = () => {
       isILC : formData.get("EBL/ILC") === "ILC" ? true : false,
     }
 
-    const {data : transient_request_data, error : transient_request_error} = await supabase.from('Transient_Request').insert(values_2)
+    const {error : transient_request_error} = await supabase.from('Transient_Request').insert(values_2)
     if(transient_request_error && transient_request_error.message){
       console.log("There was an error in inserting the information in Transient_Request table: ", transient_request_error.message)
       return
@@ -77,6 +77,7 @@ const DormitoryTransientForm = () => {
   useEffect(() => {
     redirect('transient')
     get_session_data()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

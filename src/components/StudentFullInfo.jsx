@@ -6,16 +6,11 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const applianceLabels = [
-    'Laptop / Tablet / Desktop', 'Printer / Scanner', 'Electric Fan', 'Cellular Phone',
-    'Study Lamp', 'iPod / PSP', 'Chargeable Flashlight', 'Powerbank', 'Pocket Wifi',
-    'Camera', 'Nebulizer',
-  ];
-
   useEffect(() => {
     if (isOpen && studentNumber) {
       fetchStudentData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, studentNumber]);
 
   const fetchStudentData = async () => {
@@ -33,27 +28,27 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
       if (studentError) throw studentError;
 
       // Fetch application data
-      const { data: applicationData, error: applicationError } = await supabase
+      const { data: applicationData } = await supabase
         .from('Application_for_Dorm_Accomodation')
         .select('*')
         .eq('studentNumber', studentNumber)
         .single();
 
       // Fetch instruction sheet data
-      const { data: instructionData, error: instructionError } = await supabase
+      const { data: instructionData } = await supabase
         .from('Information_and_Instruction_Sheet')
         .select('*')
         .eq('studentNumber', studentNumber)
         .single();
 
       // Fetch designated guardians
-      const { data: guardians, error: guardiansError } = await supabase
+      const { data: guardians } = await supabase
         .from('Designated_Guardians')
         .select('*')
         .eq('studentNumber', studentNumber);
 
       // Fetch guardian information (parents)
-      const { data: guardianInfo, error: guardianInfoError } = await supabase
+      const { data: guardianInfo } = await supabase
         .from('guardianInformation')
         .select('*')
         .eq('studentNumber', studentNumber);
@@ -65,7 +60,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
       }
 
       // Fetch appliances
-      const { data: appliances, error: appliancesError } = await supabase
+      const { data: appliances } = await supabase
         .from('appliance_per_student')
         .select(`
           *,
@@ -75,7 +70,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
         .eq('isActive', true);
 
       // Fetch acknowledgement of accountability form
-      const { data: accountabilityData, error: accountabilityError } = await supabase
+      const { data: accountabilityData } = await supabase
         .from('Acknowledgemet_of_Accountability_Form')
         .select('*')
         .eq('studentNumber', studentNumber)
@@ -229,7 +224,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
               <strong>Student Information:</strong> Data retrieved from database for {studentData.studentName || 'Unknown Student'}
             </p>
             {/* Debug information - remove this in production */}
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-xs text-blue-700">Debug Info (Development Only)</summary>
                 <div className="mt-2 text-xs bg-gray-100 p-2 rounded">

@@ -1,6 +1,7 @@
 import React from 'react';
 import Footer from '../../../components/Footer';
 
+ 
 function RequestCard() {
   return (
     <div className="border-2 border-gray-400 rounded-2xl p-3 sm:p-4 w-full max-w-md bg-white shadow">
@@ -27,7 +28,7 @@ function RequestCard() {
 function AdminPage_transientRequests() {
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-grow px-2 sm:px-4 py-2 sm:py-4">
+      <main className="grow px-2 sm:px-4 py-2 sm:py-4">
         <div className="container mx-auto">
           <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 text-center sm:text-left">Transient Requests</h1>
           

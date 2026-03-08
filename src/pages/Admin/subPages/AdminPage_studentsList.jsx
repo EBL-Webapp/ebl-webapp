@@ -3,7 +3,7 @@ import StudentFullInfo from '../../../components/StudentFullInfo';
 import PaginationControls from '../../../components/PaginationControls';
 import { useStudentsList, useArchiveStudent } from '../../../hooks/useStudents';
 
-// Custom Confirmation Modal Component
+ 
 const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
   if (!isOpen) return null;
 

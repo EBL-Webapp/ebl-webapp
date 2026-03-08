@@ -31,7 +31,7 @@ export default function EditPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentSearchTerm, setCurrentSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(10);
 
   // Fetch students with payments using TanStack Query
   const { data: studentsData, isLoading: isLoadingStudents } = useStudentsWithPayments(
@@ -368,7 +368,7 @@ export default function EditPayments() {
                   <input
                     type="number"
                     required
-                    className="border-1 border-black rounded-xl p-1"
+                    className="border border-black rounded-xl p-1"
                     value={studentNumberFocus.payment}
                     onChange={(e) =>
                       setStudentNumberFocus((prev) => ({
@@ -384,7 +384,7 @@ export default function EditPayments() {
                   <input
                     type="text"
                     required
-                    className="border-1 border-black rounded-xl p-1"
+                    className="border border-black rounded-xl p-1"
                     value={studentNumberFocus.referenceID}
                     onChange={(e) =>
                       setStudentNumberFocus((prev) => ({

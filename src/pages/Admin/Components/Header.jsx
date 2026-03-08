@@ -30,7 +30,8 @@ function Header() {
   // Ref for the services dropdown container
   const dropdownRef = useRef(null);
 
-  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+  // toggleDropdown kept for potential future use with services dropdown
+  // const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
   // State for the contacts dropdown
   const [contactsOpen, setContactsOpen] = useState(false);
@@ -121,7 +122,7 @@ function Header() {
           className='h-10 w-10 rounded-full mr-2'
           alt="UPMin"
         />
-        <p className='marcellus-sc-regular text-[12px] lg:text-[20px] text-white flex-grow truncate'> {/* flex-grow to allow text to fill space */}
+        <p className='marcellus-sc-regular text-[12px] lg:text-[20px] text-white grow truncate'> {/* grow to allow text to fill space */}
           UP Mindanao EBL Dorm
         </p>
       </div>
@@ -136,7 +137,7 @@ function Header() {
             </div>
             <div className={`${contactsOpen ? 'block' : 'hidden'} transition-all duration-200 absolute top-full md:top-13 right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 bg-white p-1 rounded-lg text-black z-51 w-48 max-w-[80vw]`}>
               <ul>
-                <li className='hover:bg-gray-200 p-2 rounded break-words'>
+                <li className='hover:bg-gray-200 p-2 rounded wrap-break-word'>
                   <a
                     href={
                       "https://mail.google.com/mail/?view=cm&fs=1&to=" +

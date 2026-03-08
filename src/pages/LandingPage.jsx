@@ -9,11 +9,6 @@ import { fetchColumnValue } from '../fetchColumnValue';
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  // Handler for login button click
-  const handleLoginRedirect = () => {
-    navigate('/login');
-  };
-
   useEffect(() => {
 
     const checkUserSessionAndRole = async () => {
@@ -151,6 +146,7 @@ const LandingPage = () => {
     };
 
     checkUserSessionAndRole();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -159,7 +155,7 @@ const LandingPage = () => {
       <Header variant="landing"/>
 
       {/* ===== MAIN CONTENT SECTION ===== */}
-      <main className="flex-grow">
+      <main className="grow">
         <div className="w-full px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-8 sm:pb-12">
           <section className="text-center mb-12 sm:mb-16 w-full px-4 sm:px-6">
             {/* Hero Image */}

@@ -4,7 +4,7 @@ import supabase from '../supabase_client';
 
 const LoginPage = () => {
   const [isMobile, setIsMobile] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('no_role'); // Add state for role
+  const [selectedRole] = useState('no_role');
 
   useEffect(() => {
 
@@ -64,7 +64,7 @@ const LoginPage = () => {
           </div>
 
           <button onClick={handleGoogleLogin}>
-            <div className="text-gray-600 border-1 border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200">
+            <div className="text-gray-600 border border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200">
               <img src="google-icon.svg" className="h-9" alt="Google Icon" />
               <p>Continue with Google</p>
             </div>
@@ -72,7 +72,7 @@ const LoginPage = () => {
         </div>
       ) : (
         // Desktop layout
-        <div className="bg-gray-100 relative p-8 rounded-2xl w-full max-w-md text-center shadow-lg h-[500px]">
+        <div className="bg-gray-100 relative p-8 rounded-2xl w-full max-w-md text-center shadow-lg h-125">
           <Link to='/'>
             <img
               src="home.png"
@@ -101,7 +101,7 @@ const LoginPage = () => {
           </div>
 
           <button onClick={handleGoogleLogin}>
-            <div className="text-gray-600 border-1 border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200">
+            <div className="text-gray-600 border border-gray-400 py-7 px-10 rounded-4xl shadow-sm shadow-gray-50 flex flex-row gap-7 items-center transition-all delay-50 hover:shadow-lg hover:shadow-gray-500 hover:bg-gray-200">
               <img src="google-icon.svg" className="h-9" alt="Google Icon" />
               <p>Continue with Google</p>
             </div>

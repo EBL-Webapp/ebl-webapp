@@ -29,6 +29,8 @@ export function useStudentOffenses(studentNumber) {
         queryKey: ['offenses', 'student', studentNumber],
         queryFn: () => offensesService.fetchStudentOffenses(studentNumber),
         enabled: !!studentNumber,
+        staleTime: 30 * 60 * 1000,  // 30 min — historical data, rarely changes
+        gcTime: 60 * 60 * 1000,     // 1 hr cache retention
     });
 }
 

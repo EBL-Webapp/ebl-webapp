@@ -14,7 +14,7 @@ export async function fetchPendingApprovalPermits() {
         .from('Overnight_Excuse')
         .select('*, Students(studentName)')
         .is('isApproved', null)
-        .order('created_at', { ascending: false });
+        .order('sentOn', { ascending: false });
 
     if (error) {
         throw error;
@@ -33,7 +33,7 @@ export async function fetchPendingValidationPermits() {
         .select('*, Students(studentName)')
         .eq('isApproved', true)
         .is('isValidated', null)
-        .order('created_at', { ascending: false });
+        .order('sentOn', { ascending: false });
 
     if (error) {
         throw error;
@@ -53,10 +53,10 @@ export async function approvePermit(requestId, adminID) {
         .from('Overnight_Excuse')
         .update({
             isApproved: true,
-            approvedBy: adminID,
-            approvedAt: new Date().toISOString(),
+            approvedby_adminID: adminID,
+            approvedOn: new Date().toISOString(),
         })
-        .eq('id', requestId);
+        .eq('overnightExcuseID', requestId);
 
     if (error) {
         throw error;
@@ -74,10 +74,10 @@ export async function denyPermit(requestId, adminID) {
         .from('Overnight_Excuse')
         .update({
             isApproved: false,
-            approvedBy: adminID,
-            approvedAt: new Date().toISOString(),
+            approvedby_adminID: adminID,
+            approvedOn: new Date().toISOString(),
         })
-        .eq('id', requestId);
+        .eq('overnightExcuseID', requestId);
 
     if (error) {
         throw error;
@@ -95,10 +95,10 @@ export async function validatePermit(requestId, adminID) {
         .from('Overnight_Excuse')
         .update({
             isValidated: true,
-            validatedBy: adminID,
-            validatedAt: new Date().toISOString(),
+            validatedby_adminID: adminID,
+            validatedOn: new Date().toISOString(),
         })
-        .eq('id', requestId);
+        .eq('overnightExcuseID', requestId);
 
     if (error) {
         throw error;
@@ -138,7 +138,7 @@ export async function fetchStudentOvernightSlips(studentNumber) {
         .from('Overnight_Excuse')
         .select('*')
         .eq('studentNumber', studentNumber)
-        .order('created_at', { ascending: false });
+        .order('sentOn', { ascending: false });
 
     if (error) {
         throw error;

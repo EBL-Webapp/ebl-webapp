@@ -4,7 +4,6 @@ import supabase from '../../supabase_client';
 
 function StudentSignIn() {
   const navigate = useNavigate();
-  const [session, setSession] = useState(null);
   const [formData, setFormData] = useState({});
 
   // Load saved form data and session on component mount
@@ -21,17 +20,14 @@ function StudentSignIn() {
       }
     }
     
-    // Get session from Supabase
+    // Verify session exists on mount
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { error } = await supabase.auth.getSession();
       if (error) {
         console.log("Error getting session: ", error.message);
-        return;
       }
-      setSession(session);
-      console.log("Session retrieved:", session);
     }
-    
+
     getSession();
   }, []); // Empty dependency array ensures this runs only once on mount
 

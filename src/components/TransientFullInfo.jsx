@@ -15,6 +15,7 @@ function TransientFullInfo({ isOpen, onClose, transientId }) {
       setTransientData(null);
       setError(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, transientId]);
 
   const fetchTransientData = async () => {
@@ -72,7 +73,7 @@ function TransientFullInfo({ isOpen, onClose, transientId }) {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 flex-grow">
+        <div className="p-6 grow">
           {loading && <Loading />}
           {error && (
             <div className="text-center py-8 text-red-500">

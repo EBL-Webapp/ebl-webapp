@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import upLogo from "@/assets/up-mindanao-logo.png";
 import supabase from "../supabase_client";
-import { fetchColumnValue } from "../fetchColumnValue";
 
 
-export default function Header({ 
-  variant = "landing", 
-  isLoggedIn = false, 
-  userId = "", 
-  loggedIn_transient = false
+export default function Header({
+  variant = "landing",
+  isLoggedIn = false,
 }) {
 
   const navigate = useNavigate();
@@ -37,8 +34,7 @@ export default function Header({
   const isStudent = variant === "student";
   const isTransient = variant === "transient";
 
-  const [showServices, setShowServices] = useState(false);
-  const [showContacts, setShowContacts] = useState(false);
+  const [showContacts] = useState(false);
   const [accountLogo, setAccountLogo] = useState("/pfp.png");
   const [userName, setUserName] = useState("Student User");
   const [studentNumber, setStudentNumber] = useState("");

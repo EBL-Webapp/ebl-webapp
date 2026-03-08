@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Loading from '../../../components/Loading';
 import PaginationControls from '../../../components/PaginationControls';
 import { useGlobalContext } from '../../../context/GlobalContext';
@@ -13,10 +13,10 @@ import {
 } from '../../../hooks/useOffenses';
 import { X, Search, PlusCircle, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
 
-// Message Modal Component
+ 
 const MessageModal = ({ title, message, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm zain-regular text-black">
         <h3 className="text-xl font-semibold mb-4 text-[#114516]">{title}</h3>
         <p className="mb-6 text-gray-700">{message}</p>
@@ -31,10 +31,10 @@ const MessageModal = ({ title, message, onClose }) => {
   );
 };
 
-// Confirmation Modal Component
+ 
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm zain-regular text-black">
         <h3 className="text-xl font-semibold mb-4 text-red-600 flex items-center gap-2">
           <AlertTriangle size={20} /> Confirm Action
@@ -86,6 +86,7 @@ function AdminPage_editOffenses() {
 
   // Add offense states (for step-by-step)
   const [addOffenseSearchTerm, setAddOffenseSearchTerm] = useState('');
+  const [debouncedAddOffenseSearch, setDebouncedAddOffenseSearch] = useState('');
   const [addOffensePage, setAddOffensePage] = useState(1);
   const [specificStudentToAddOffense, setSpecificStudentToAddOffense] = useState(null);
   const [selectedOffenseTypeId, setSelectedOffenseTypeId] = useState('');
@@ -102,6 +103,14 @@ function AdminPage_editOffenses() {
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalAction, setConfirmModalAction] = useState(() => { });
 
+  // Debounce the add-offense search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedAddOffenseSearch(addOffenseSearchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [addOffenseSearchTerm]);
+
   // Fetch data
   const { data: studentsData, isLoading: isLoadingStudents } = useStudentsForOffenses(
     activeSearchTerm,
@@ -109,15 +118,15 @@ function AdminPage_editOffenses() {
     rowsPerPage
   );
 
-  const { data: addOffenseStudentsData, isLoading: isLoadingAddOffenseSearch } = useStudentsForOffenses(
-    addOffenseSearchTerm,
+  const { data: addOffenseStudentsData } = useStudentsForOffenses(
+    debouncedAddOffenseSearch,
     addOffensePage,
     5
   );
 
   const { data: offenseTypes = [], isLoading: isLoadingOffenseTypes } = useOffenseTypes();
 
-  const { data: studentOffenses = [], isLoading: isLoadingStudentOffenses } = useStudentOffenses(
+  const { data: studentOffenses = [] } = useStudentOffenses(
     specificStudent?.studentNumber
   );
 
@@ -127,14 +136,7 @@ function AdminPage_editOffenses() {
   const updateOffenseMutation = useUpdateOffense();
   const deleteOffenseMutation = useDeleteOffense();
 
-  const isLoading = isLoadingStudents ||
-    isLoadingOffenseTypes ||
-    isLoadingStudentOffenses ||
-    isLoadingAddOffenseSearch ||
-    createOffenseTypeMutation.isPending ||
-    createOffenseMutation.isPending ||
-    updateOffenseMutation.isPending ||
-    deleteOffenseMutation.isPending;
+  const isLoading = isLoadingStudents || isLoadingOffenseTypes;
 
   const tableData = studentsData?.data || [];
   const totalRows = studentsData?.count || 0;
@@ -289,7 +291,7 @@ function AdminPage_editOffenses() {
 
       {/* Student Offenses Modal */}
       {specificStudentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-80 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b flex justify-between items-center bg-[#114516] text-white">
               <div>
@@ -343,7 +345,7 @@ function AdminPage_editOffenses() {
 
       {/* Edit Offense Modal */}
       {isEditOffenseModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-6 text-[#114516]">Update Offense</h3>
             <form onSubmit={editSpecificOffense} className="space-y-4">
@@ -391,7 +393,7 @@ function AdminPage_editOffenses() {
 
       {/* Add Offense Modal */}
       {addOffenseModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="p-6 bg-[#114516] text-white flex justify-between items-center">
               <h3 className="text-xl font-bold">Add New Offense</h3>
@@ -412,7 +414,7 @@ function AdminPage_editOffenses() {
                     />
                   </div>
 
-                  <div className="min-h-[300px] border rounded-2xl overflow-hidden bg-gray-50">
+                  <div className="min-h-75 border rounded-2xl overflow-hidden bg-gray-50">
                     <table className="w-full">
                       <thead className="bg-gray-100 text-xs text-gray-500 uppercase">
                         <tr>
@@ -484,7 +486,7 @@ function AdminPage_editOffenses() {
                     <button
                       type="submit"
                       disabled={!selectedOffenseTypeId}
-                      className="flex-[2] py-3 bg-[#114516] text-white rounded-2xl font-bold hover:bg-[#1e6a23] transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
+                      className="flex-2 py-3 bg-[#114516] text-white rounded-2xl font-bold hover:bg-[#1e6a23] transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
                     >
                       Submit Record
                     </button>
@@ -498,7 +500,7 @@ function AdminPage_editOffenses() {
 
       {/* Add Offense Type Modal */}
       {showAddOffenseTypeModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-[#4E0303]">New Offense Type</h3>
@@ -573,7 +575,7 @@ function AdminPage_editOffenses() {
             </button>
             <button
               onClick={() => setShowAddOffenseTypeModal(true)}
-              className="bg-transparent border-2 border-[#4E0303] text-[#4E0303] px-4 py-3 rounded-2xl font-bold hover:bg-[#4E0303] hover:text-white transition-all shadow-sm active:scale-95 transition-all"
+              className="bg-transparent border-2 border-[#4E0303] text-[#4E0303] px-4 py-3 rounded-2xl font-bold hover:bg-[#4E0303] hover:text-white transition-all shadow-sm active:scale-95"
             >
               Manage Types
             </button>
