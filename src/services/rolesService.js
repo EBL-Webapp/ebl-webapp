@@ -74,8 +74,11 @@ export async function approveRegistration(id, type) {
         const { error } = await supabase
             .from('Transient')
             .update({ isAccepted: true })
-            .eq("transientID", id);
-        if (error) throw error;
+            .eq("userID", id);
+        if (error) {
+            console.error("Supabase UPDATE error (Transient):", error);
+            throw error;
+        }
 
     } else if (type === 'student') {
         // Need to fetch studentNumber first because the ID passed is likely userID (based on original code)
@@ -90,14 +93,20 @@ export async function approveRegistration(id, type) {
             .from('Students')
             .update({ isAssessed: true }) // Original code uses isAssessed
             .eq("studentNumber", studentNumber);
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase UPDATE error (Students):", error);
+            throw error;
+        }
 
     } else if (type === 'admin') {
         const { error } = await supabase
             .from("admin")
             .update({ isAccepted: true })
             .eq("userID", id);
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase UPDATE error (admin):", error);
+            throw error;
+        }
 
     } else {
         throw new Error(`Unknown type: ${type}`);
@@ -115,8 +124,11 @@ export async function denyRegistration(id, type) {
         const { error } = await supabase
             .from('Transient')
             .delete()
-            .eq("transientID", id);
-        if (error) throw error;
+            .eq("userID", id);
+        if (error) {
+            console.error("Supabase DELETE error (Transient):", error);
+            throw error;
+        }
 
     } else if (type === 'student') {
         const studentNumber = await fetchColumnValue("Students", "userID", id, "studentNumber");
@@ -129,14 +141,20 @@ export async function denyRegistration(id, type) {
             .from('Students')
             .delete()
             .eq("studentNumber", studentNumber);
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase DELETE error (Students):", error);
+            throw error;
+        }
 
     } else if (type === 'admin') {
         const { error } = await supabase
             .from('admin')
             .delete()
             .eq("userID", id);
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase DELETE error (admin):", error);
+            throw error;
+        }
 
     } else {
         throw new Error(`Unknown type: ${type}`);
