@@ -147,31 +147,47 @@ function AdminPage_editRoles() {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <div className="flex justify-center space-x-2">
                         <button
-                          onClick={() => handleAccept(row.original_entity_id, row.requester_type)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleAccept(row.original_entity_id, row.requester_type);
+                          }}
                           className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={() => handleDeny(row.original_entity_id, row.requester_type)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeny(row.original_entity_id, row.requester_type);
+                          }}
                           className="bg-red-300 hover:bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
                         >
                           Deny
                         </button>
                         {row.requester_type === 'student' ?
                           <button
-                            onClick={() => handleViewStudentInfo(row.original_entity_id)}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleViewStudentInfo(row.original_entity_id);
+                            }}
                             className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
                             View
                           </button>
                           : row.requester_type === 'transient' ?
                             <button
-                              onClick={() => setSelectedTransientId(row.original_entity_id)}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setSelectedTransientId(row.original_entity_id);
+                              }}
                               className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
                               View
                             </button>
                             :
-                            <button disabled className="bg-gray-200 text-white px-3 py-1 rounded text-sm transition-colors cursor-not-allowed duration-200">
+                            <button type="button" disabled className="bg-gray-200 text-white px-3 py-1 rounded text-sm transition-colors cursor-not-allowed duration-200">
                               View
                             </button>
                         }
@@ -251,8 +267,12 @@ function AdminPage_editRoles() {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <div className="flex justify-center space-x-2">
                         <button
+                          type="button"
                           className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-                          onClick={() => handleDeleteAdmin(admin.adminID)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteAdmin(admin.adminID);
+                          }}
                         >
                           Delete
                         </button>
