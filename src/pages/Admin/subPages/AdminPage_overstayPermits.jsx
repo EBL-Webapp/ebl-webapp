@@ -7,10 +7,12 @@ import {
   useDenyPermit,
   useValidatePermit
 } from '../../../hooks/useOverstayPermits';
+import PermitApprovalModal from '../Components/PermitApprovalModal';
 
 export default function AdminPage_overstayPermits() {
   const { adminID } = useGlobalContext();
   const [activeTab, setActiveTab] = useState('approval'); // 'approval' or 'validation'
+  const [approvingPermit, setApprovingPermit] = useState(null);
 
   // Fetch permits using TanStack Query
   const { data: pendingApprovalPermits = [], isLoading: isLoadingApproval } = usePendingApprovalPermits();
@@ -149,7 +151,7 @@ export default function AdminPage_overstayPermits() {
                           <td className='px-6 py-4 whitespace-nowrap text-center'>
                             <div className='flex justify-center space-x-2'>
                               <button
-                                onClick={() => handleApprove(permit.overnightExcuseID)}
+                                onClick={() => setApprovingPermit(permit)}
                                 className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                               >
                                 Approve
@@ -234,6 +236,13 @@ export default function AdminPage_overstayPermits() {
             )}
           </>
         )}
+
+        <PermitApprovalModal
+          isOpen={!!approvingPermit}
+          onClose={() => setApprovingPermit(null)}
+          permit={approvingPermit}
+          onConfirm={handleApprove}
+        />
       </div>
     </div>
   );
