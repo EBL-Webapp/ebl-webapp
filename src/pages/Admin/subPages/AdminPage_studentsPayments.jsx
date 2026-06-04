@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PaginationControls from "../../../components/PaginationControls";
 import Loading from "../../../components/Loading";
 import { useGlobalContext } from "../../../context/GlobalContext";
-import { useStudentsWithPayments, useCreatePayment, useUpdateStudentBalance, useUpdateStaticCharge, useCreateAppliance, useDeleteAppliance, useTriggerMonthlyCharges } from "../../../hooks/usePayments";
+import { useStudentsWithPayments, useCreatePayment, useUpdateStudentBalance, useUpdateStaticCharge, useCreateAppliance, useDeleteAppliance, useTriggerMonthlyCharges, useStudentPaymentHistory, useStudentChargeHistory } from "../../../hooks/usePayments";
 
 export default function EditPayments() {
   // Get global context data
@@ -12,6 +12,8 @@ export default function EditPayments() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
   const [showConfirmChargesModal, setShowConfirmChargesModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyStudent, setHistoryStudent] = useState(null);
 
   // Form states
   const [newStaticCharges, setNewStaticCharges] = useState({});
@@ -48,6 +50,10 @@ export default function EditPayments() {
   const deleteApplianceMutation = useDeleteAppliance();
   const triggerChargesMutation = useTriggerMonthlyCharges();
 
+  // History hooks
+  const { data: paymentHistory = [], isLoading: isLoadingPaymentHistory } = useStudentPaymentHistory(historyStudent?.studentNumber);
+  const { data: chargeHistory = [], isLoading: isLoadingChargeHistory } = useStudentChargeHistory(historyStudent?.studentNumber);
+
   // Initialize newStaticCharges when staticCharges loads
   useEffect(() => {
     if (staticCharges) {
@@ -74,6 +80,11 @@ export default function EditPayments() {
       payment: 0,
       referenceID: "",
     });
+  };
+
+  const handleOpenHistoryModal = (student) => {
+    setHistoryStudent(student);
+    setShowHistoryModal(true);
   };
 
   const handleCloseModal = () => {
@@ -312,18 +323,26 @@ export default function EditPayments() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() =>
-                        handleOpenModal(
-                          x.studentNumber,
-                          x.surplus_deficit_payment,
-                          x.studentName
-                        )
-                      }
-                      className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900"
-                    >
-                      Edit Payment
-                    </button>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() =>
+                          handleOpenModal(
+                            x.studentNumber,
+                            x.surplus_deficit_payment,
+                            x.studentName
+                          )
+                        }
+                        className="bg-[#4E0303] text-white px-3 py-1 rounded-2xl hover:bg-red-900"
+                      >
+                        Edit Payment
+                      </button>
+                      <button
+                        onClick={() => handleOpenHistoryModal(x)}
+                        className="bg-[#114516] text-white px-3 py-1 rounded-2xl hover:bg-green-800"
+                      >
+                        View History
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -561,6 +580,119 @@ export default function EditPayments() {
                 className="bg-[#114516] text-white px-4 py-2 rounded-full hover:bg-green-800"
               >
                 Yes, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment & Charge History Modal */}
+      {showHistoryModal && historyStudent && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 text-black">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 zain-regular">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-semibold text-[#114516]">{historyStudent.studentName}</h3>
+                <p className="text-sm text-gray-600">{historyStudent.studentNumber}</p>
+              </div>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-2xl text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Payment History Section */}
+            <div className="border-t pt-4">
+              <h4 className="text-lg font-semibold text-[#114516] mb-3">Payment History</h4>
+              {isLoadingPaymentHistory ? (
+                <p className="text-center text-gray-500">Loading...</p>
+              ) : paymentHistory && paymentHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Date</th>
+                        <th className="px-4 py-2 text-right">Amount</th>
+                        <th className="px-4 py-2 text-left">Reference ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentHistory.map((payment) => (
+                        <tr key={payment.paymentID} className="border-t hover:bg-gray-50">
+                          <td className="px-4 py-2">
+                            {new Date(payment.timestamp).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="px-4 py-2 text-right font-semibold text-green-700">
+                            ₱{parseFloat(payment.paymentAmount).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 font-mono text-xs">{payment.referenceID || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500">No payment records found.</p>
+              )}
+            </div>
+
+            {/* Charge History Section */}
+            <div className="border-t pt-4">
+              <h4 className="text-lg font-semibold text-[#114516] mb-3">Charge History</h4>
+              {isLoadingChargeHistory ? (
+                <p className="text-center text-gray-500">Loading...</p>
+              ) : chargeHistory && chargeHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Date</th>
+                        <th className="px-4 py-2 text-right">Amount</th>
+                        <th className="px-4 py-2 text-left">Due Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chargeHistory.map((charge) => (
+                        <tr key={charge.chargeID} className="border-t hover:bg-gray-50">
+                          <td className="px-4 py-2">
+                            {new Date(charge.timestamp).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="px-4 py-2 text-right font-semibold text-red-700">
+                            ₱{parseFloat(charge.amount || 0).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2">
+                            {charge.dueDate ? new Date(charge.dueDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            }) : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500">No charge records found.</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="bg-gray-500 text-white px-6 py-2 rounded-full hover:bg-gray-600"
+              >
+                Close
               </button>
             </div>
           </div>

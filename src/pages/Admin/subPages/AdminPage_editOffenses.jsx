@@ -170,9 +170,9 @@ function AdminPage_editOffenses() {
 
   const handleOpenEdit = (offense) => {
     setOffenseHighlight({
-      offenseID: offense.id || offense.offenceInstance,
-      admin: offense.recordedBy || offense.adminName,
-      offenseName: offense.list_of_offenses?.offenseName || '',
+      offenseID: offense.offenceInstance,
+      admin: offense.adminName,
+      offenseName: offense.List_of_Offenses?.offenseName || '',
       offensePkey: offense.offenseID
     });
     setIsEditOffenseModal(true);
@@ -191,7 +191,6 @@ function AdminPage_editOffenses() {
         studentNumber: specificStudent?.studentNumber,
         data: {
           offenseID: offenseHighlight.offensePkey,
-          recordedBy: adminID,
         }
       });
       handleShowMessage("Success", "Offense updated successfully!");
@@ -236,18 +235,23 @@ function AdminPage_editOffenses() {
 
   const handleAddOffenseSubmit = async (event) => {
     event.preventDefault();
-    if (!specificStudentToAddOffense || !selectedOffenseTypeId) return;
+    if (!specificStudentToAddOffense || !selectedOffenseTypeId) {
+      handleShowMessage("Error", "Please select both a student and an offense type.");
+      return;
+    }
 
     try {
       await createOffenseMutation.mutateAsync({
         studentNumber: specificStudentToAddOffense.studentNumber,
-        offenseID: selectedOffenseTypeId,
+        offenseID: parseInt(selectedOffenseTypeId, 10), // Convert to integer
         adminID: adminID
       });
       handleShowMessage("Success", `Offense added for ${specificStudentToAddOffense.studentName}!`);
       handleAddOffenseModal();
     } catch (error) {
-      handleShowMessage("Error", "Failed to add offense: " + error.message);
+      const errorMsg = error?.message || error?.toString?.() || 'Unknown error occurred';
+      console.error('Add offense error:', error);
+      handleShowMessage("Error", "Failed to add offense: " + errorMsg);
     }
   };
 
@@ -316,13 +320,13 @@ function AdminPage_editOffenses() {
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {studentOffenses.map((offense) => (
-                      <div key={offense.id} className="bg-gray-50 border rounded-2xl p-4 flex justify-between items-center hover:shadow-md transition-shadow">
+                      <div key={offense.offenceInstance} className="bg-gray-50 border rounded-2xl p-4 flex justify-between items-center hover:shadow-md transition-shadow">
                         <div>
-                          <h4 className="font-bold text-lg text-gray-800">{offense.list_of_offenses?.offenseName}</h4>
+                          <h4 className="font-bold text-lg text-gray-800">{offense.List_of_Offenses?.offenseName}</h4>
                           <div className="flex gap-4 mt-1 text-sm text-gray-600">
-                            <span>Severity: <span className="font-semibold text-red-600">{offense.list_of_offenses?.offenseCharge}</span></span>
-                            <span>Recorded by: {offense.recordedBy || 'System'}</span>
-                            <span>Date: {new Date(offense.created_at).toLocaleDateString()}</span>
+                            <span>Severity: <span className="font-semibold text-red-600">{offense.List_of_Offenses?.offenseSeverity}</span></span>
+                            <span>Recorded by: {offense.adminName || 'System'}</span>
+                            <span>Date: {offense.timestamp ? new Date(offense.timestamp).toLocaleDateString() : 'N/A'}</span>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -352,13 +356,13 @@ function AdminPage_editOffenses() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Offense Type</label>
                 <select
-                  value={offenseHighlight.offensePkey}
+                  value={String(offenseHighlight.offensePkey)}
                   onChange={(e) => setOffenseHighlight(prev => ({ ...prev, offensePkey: e.target.value }))}
-                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#114516] outline-none"
+                  className="w-full border-2 border-black rounded-xl px-4 py-2 text-black focus:ring-2 focus:ring-[#114516] outline-none"
                 >
                   <option value="">Select an offense...</option>
                   {offenseTypes.map(t => (
-                    <option key={t.id} value={t.id}>{t.offenseName} (Lv {t.offenseCharge})</option>
+                    <option key={t.offenseID} value={String(t.offenseID)}>{t.offenseName} ({t.offenseSeverity})</option>
                   ))}
                 </select>
               </div>
@@ -464,14 +468,20 @@ function AdminPage_editOffenses() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Select Offense Type</label>
                     <select
                       required
-                      value={selectedOffenseTypeId}
-                      onChange={(e) => setSelectedOffenseTypeId(e.target.value)}
-                      className="w-full border rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#114516] shadow-sm bg-white"
+                      value={String(selectedOffenseTypeId)}
+                      onChange={(e) => {
+                        setSelectedOffenseTypeId(e.target.value);
+                      }}
+                      className="w-full border rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#114516] shadow-sm bg-white text-black"
                     >
                       <option value="">-- Choose Offense Type --</option>
-                      {offenseTypes.map(t => (
-                        <option key={t.id} value={t.id}>{t.offenseName} (Severity: {t.offenseCharge})</option>
-                      ))}
+                      {offenseTypes && offenseTypes.length > 0 ? (
+                        offenseTypes.map(t => (
+                          <option key={`offense-${t.offenseID}`} value={String(t.offenseID)}>{t.offenseName} ({t.offenseSeverity})</option>
+                        ))
+                      ) : (
+                        <option disabled>No offense types available</option>
+                      )}
                     </select>
                   </div>
 
@@ -498,42 +508,80 @@ function AdminPage_editOffenses() {
         </div>
       )}
 
-      {/* Add Offense Type Modal */}
+      {/* Manage Offense Types Modal */}
       {showAddOffenseTypeModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[#4E0303]">New Offense Type</h3>
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-[#4E0303]">Manage Offense Types</h3>
               <button onClick={() => setShowAddOffenseTypeModal(false)} className="p-1 rounded-full hover:bg-gray-100"><X size={20} /></button>
             </div>
-            <form onSubmit={handleAddOffenseTypeSubmit} className="space-y-5">
+
+            {/* List of Possible Offenses */}
+            <div className="mb-6">
+              <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Possible Offenses</h4>
+              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-2xl p-3 bg-gray-50">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-gray-500">
+                      <th className="text-left pb-2 font-semibold">Offense Name</th>
+                      <th className="text-right pb-2 font-semibold">Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {offenseTypes.length === 0 ? (
+                      <tr>
+                        <td colSpan="2" className="text-center py-4 text-gray-400">No offense types configured.</td>
+                      </tr>
+                    ) : (
+                      offenseTypes.map(t => (
+                        <tr key={t.offenseID} className="border-b border-gray-100 last:border-0 hover:bg-gray-100/50">
+                          <td className="py-2 text-gray-800">{t.offenseName}</td>
+                          <td className="py-2 text-right">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              t.offenseSeverity === 'Major' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {t.offenseSeverity}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Form to Add New Offense Type */}
+            <form onSubmit={handleAddOffenseTypeSubmit} className="space-y-4 border-t pt-4">
+              <h4 className="text-sm font-semibold text-gray-500 uppercase">Create New Offense Type</h4>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Offense Name</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Offense Name</label>
                 <input
                   required
                   type="text"
-                  placeholder="e.g. Broken Furniture"
+                  placeholder="e.g. Insubordination"
                   value={newOffenseTypeName}
                   onChange={(e) => setNewOffenseTypeName(e.target.value)}
-                  className="w-full border rounded-2xl px-4 py-3 focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm"
+                  className="w-full border rounded-2xl px-4 py-2 text-sm focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Severity / Penalty Level</label>
-                <input
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Severity</label>
+                <select
                   required
-                  type="number"
-                  min="1"
-                  max="10"
-                  placeholder="1-10"
                   value={newOffenseSeverity}
                   onChange={(e) => setNewOffenseSeverity(e.target.value)}
-                  className="w-full border rounded-2xl px-4 py-3 focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm"
-                />
+                  className="w-full border rounded-2xl px-4 py-2 text-sm focus:ring-2 focus:ring-[#4E0303] outline-none shadow-sm bg-white"
+                >
+                  <option value="">Select Severity...</option>
+                  <option value="Minor">Minor</option>
+                  <option value="Major">Major</option>
+                </select>
               </div>
               <button
                 type="submit"
-                className="w-full py-3 bg-[#4E0303] text-white rounded-2xl font-bold hover:bg-red-800 transition-all shadow-lg mt-4 active:scale-[0.98]"
+                className="w-full py-2 bg-[#4E0303] text-white rounded-2xl font-bold hover:bg-red-800 transition-all shadow-lg active:scale-[0.98]"
               >
                 Create Offense Type
               </button>

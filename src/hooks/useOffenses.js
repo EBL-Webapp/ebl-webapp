@@ -57,8 +57,8 @@ export function useCreateOffenseType() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ offenseName, offenseCharge }) =>
-            offensesService.createOffenseType(offenseName, offenseCharge),
+        mutationFn: ({ offenseName, offenseSeverity }) =>
+            offensesService.createOffenseType(offenseName, offenseSeverity),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['offenses', 'types'] });
         },

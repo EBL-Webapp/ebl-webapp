@@ -79,7 +79,7 @@ export default function Header({
 
   return (
     <header className="bg-[#4E0303] shadow-md sticky top-0 z-50 text-black text-sm font-light">
-      <div className="max-w-screen-xl mx-auto px-4 py-2 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 py-2 flex justify-between items-center">
         {/* Logo / Title */}
         <Link to="/" className="flex items-center space-x-2" onClick={handleLogOut}>
           <img src={upLogo} alt="Logo" className="h-12 w-12 sm:h-20 sm:w-20" />
@@ -91,7 +91,7 @@ export default function Header({
         {isStudent && (
           <Link
             to="/student"
-            className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
+            className="bg-white text-[#114516]! font-semibold px-4 py-2 rounded-full"
           >
             Home
           </Link>
@@ -100,7 +100,7 @@ export default function Header({
         {isTransient && (
           <Link
             to="/transient"
-            className="bg-white !text-[#114516] font-semibold px-4 py-2 rounded-full"
+            className="bg-white text-[#114516]! font-semibold px-4 py-2 rounded-full"
           >
             Transient
           </Link>
@@ -149,7 +149,7 @@ export default function Header({
               </div>
               <button 
                 onClick={onLogout} 
-                className="text-white hover:underline !text-xs flex items-center !bg-[#4E0303] !px-1 !py-2"
+                className="text-white hover:underline text-xs! flex items-center bg-[#4E0303]! px-1! py-2!"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="ml-1 hidden lg:inline">Logout</span>
@@ -170,7 +170,7 @@ export default function Header({
         <div className="relative md:hidden">
           <button 
             onClick={toggleMenu} 
-            className="focus:outline-none p-2 !bg-transparent"
+            className="focus:outline-none p-2 bg-transparent!"
             aria-label={showMenu ? "Close menu" : "Open menu"}
           >
             <Menu className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
@@ -204,7 +204,7 @@ export default function Header({
               {isStudent && isLoggedIn && (
                 <button
                   onClick={onLogout}
-                  className="flex items-center text-sm font-light text-white !bg-[#4E0303] hover:bg-red-900 px-3 py-1 rounded transition-colors duration-200 mt-2"
+                  className="flex items-center text-sm font-light text-white bg-[#4E0303]! hover:bg-red-900 px-3 py-1 rounded transition-colors duration-200 mt-2"
                 >
                   <LogOut className="w-4 h-4 mr-1" />
                   <span className="text-xs sm:text-sm font-light ">Logout</span>
@@ -215,7 +215,7 @@ export default function Header({
               {!isStudent && (
                 <Link 
                   to="/login"
-                  className="block text-sm font-light !text-white bg-[#114516] hover:bg-green-800 px-4 py-2 rounded transition-colors duration-200 mt-2 text-center"
+                  className="block text-sm font-light text-white! bg-[#114516] hover:bg-green-800 px-4 py-2 rounded transition-colors duration-200 mt-2 text-center"
                 >
                   Log in
                 </Link>

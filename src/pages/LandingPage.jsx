@@ -99,44 +99,44 @@ const LandingPage = () => {
 
 
 
-      // Let's check if the user is a transient
-      const transientID = await fetchColumnValue(
-        "Transient",
-        "userID",
-        session.user.id,
-        "transientID",
-      )
-      if(transientID){
-        localStorage.setItem("transientID", transientID)
-        navigate("/transient");
-        return;
-      }
-      console.log("transientID found:", transientID);
+      // // Let's check if the user is a transient
+      // const transientID = await fetchColumnValue(
+      //   "Transient",
+      //   "userID",
+      //   session.user.id,
+      //   "transientID",
+      // )
+      // if(transientID){
+      //   localStorage.setItem("transientID", transientID)
+      //   navigate("/transient");
+      //   return;
+      // }
+      // console.log("transientID found:", transientID);
 
-      try {
-        
-        // Let's check if the user is a signing-in transient
-        const transient_str = localStorage.getItem('Transient_Sign_Up')
-        if(transient_str === 'transient-sign-in'){
-          console.log("Pumasok ba?")
-          // Then that means we should allow the user to sign-in as a transient
-          const {error} = await supabase.from('Transient').insert([{
-            userID : session.user.id
-          }])
+      // try {
+      //   
+      //   // Let's check if the user is a signing-in transient
+      //   const transient_str = localStorage.getItem('Transient_Sign_Up')
+      //   if(transient_str === 'transient-sign-in'){
+      //     console.log("Pumasok ba?")
+      //     // Then that means we should allow the user to sign-in as a transient
+      //     const {error} = await supabase.from('Transient').insert([{
+      //       userID : session.user.id
+      //     }])
 
-          localStorage.removeItem('Transient_Sign_Up')
+      //     localStorage.removeItem('Transient_Sign_Up')
 
-          if(error && error.message){
-            console.log("Error in writing the new transient in landing page: ", error.message)
-            return
-          }
-          navigate('/navigate')
-          return;
-        }
+      //     if(error && error.message){
+      //       console.log("Error in writing the new transient in landing page: ", error.message)
+      //       return
+      //     }
+      //     navigate('/navigate')
+      //     return;
+      //   }
 
-      } catch (err) {
-        console.log("The algorithm has checked that there is no request for this user to be transient: ", err.message)
-      }
+      // } catch (err) {
+      //   console.log("The algorithm has checked that there is no request for this user to be transient: ", err.message)
+      // }
 
 
 

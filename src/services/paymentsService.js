@@ -209,3 +209,41 @@ export async function triggerMonthlyCharges(adminID) {
 
     return data;
 }
+
+/**
+ * Fetch payment history for a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Promise<Array>} Array of payment records sorted by timestamp (newest first)
+ */
+export async function fetchStudentPaymentHistory(studentNumber) {
+    const { data, error } = await supabase
+        .from('studentPayment')
+        .select('paymentID, timestamp, paymentAmount, referenceID')
+        .eq('studentNumber', studentNumber)
+        .order('timestamp', { ascending: false });
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Fetch charge history for a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Promise<Array>} Array of charge records sorted by timestamp (newest first)
+ */
+export async function fetchStudentChargeHistory(studentNumber) {
+    const { data, error } = await supabase
+        .from('studentCharge')
+        .select('chargeID, timestamp, amount, dueDate')
+        .eq('studentNumber', studentNumber)
+        .order('timestamp', { ascending: false });
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}

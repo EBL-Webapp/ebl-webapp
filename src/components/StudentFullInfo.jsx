@@ -144,6 +144,35 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
     setStudentData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleGuardianChange = (index, field, value) => {
+    setStudentData(prev => {
+      const updated = [...prev.designatedGuardians];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, designatedGuardians: updated };
+    });
+  };
+
+  const handleApplianceChange = (index, field, value) => {
+    setStudentData(prev => {
+      const updated = [...prev.appliances];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, appliances: updated };
+    });
+  };
+
+  const handleAccountabilityChange = (field, value) => {
+    setStudentData(prev => {
+      const currentForm = prev.accountabilityForm || { studentNumber, isArchived: false };
+      return {
+        ...prev,
+        accountabilityForm: {
+          ...currentForm,
+          [field]: value
+        }
+      };
+    });
+  };
+
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
@@ -211,6 +240,70 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
             .update(g.data)
             .eq('guardianID', g.id);
           if (ge) throw new Error(`Guardian (${g.type}): ` + ge.message);
+        }
+      }
+
+      // 5. Update Designated_Guardians
+      for (const g of studentData.designatedGuardians) {
+        if (g.designatedGuardianID) {
+          const { error: dge } = await supabase
+            .from('Designated_Guardians')
+            .update({
+              fullName_of_Guardian: g.fullName_of_Guardian,
+              relationshipToResident: g.relationshipToResident,
+              completeAddress: g.completeAddress,
+              contactNumber: g.contactNumber,
+            })
+            .eq('designatedGuardianID', g.designatedGuardianID);
+          if (dge) throw new Error('Designated Guardians: ' + dge.message);
+        }
+      }
+
+      // 6. Update appliance_per_student
+      for (const appliance of studentData.appliances) {
+        if (appliance.id) {
+          const { error: appe } = await supabase
+            .from('appliance_per_student')
+            .update({
+              quantity: appliance.quantity,
+              brand: appliance.brand,
+              serialNo: appliance.serialNo,
+            })
+            .eq('id', appliance.id);
+          if (appe) throw new Error('Appliances: ' + appe.message);
+        }
+      }
+
+      // 7. Update or Insert Acknowledgemet_of_Accountability_Form
+      if (studentData.accountabilityForm) {
+        const hasExisting = studentData.accountabilityForm.timestamp || studentData.accountabilityForm.created_at;
+        const formPayload = {
+          studentNumber,
+          roomNumber: studentData.accountabilityForm.roomNumber || null,
+          semester: studentData.accountabilityForm.semester || null,
+          roomKey_propertyNumber: studentData.accountabilityForm.roomKey_propertyNumber || null,
+          studyTable_propertyNumber: studentData.accountabilityForm.studyTable_propertyNumber || null,
+          jalousies_propertyNumber: studentData.accountabilityForm.jalousies_propertyNumber || null,
+          window_propertyNumber: studentData.accountabilityForm.window_propertyNumber || null,
+          bedfoam_propertyNumber: studentData.accountabilityForm.bedfoam_propertyNumber || null,
+          closet_propertyNumber: studentData.accountabilityForm.closet_propertyNumber || null,
+          ClosetDoorHandle_propertyNumber: studentData.accountabilityForm.ClosetDoorHandle_propertyNumber || null,
+          chair_propertyNumber: studentData.accountabilityForm.chair_propertyNumber || null,
+          isArchived: false
+        };
+
+        if (hasExisting) {
+          const { error: acce } = await supabase
+            .from('Acknowledgemet_of_Accountability_Form')
+            .update(formPayload)
+            .eq('studentNumber', studentNumber)
+            .eq('isArchived', false);
+          if (acce) throw new Error('Accountability Form: ' + acce.message);
+        } else {
+          const { error: acce } = await supabase
+            .from('Acknowledgemet_of_Accountability_Form')
+            .insert([formPayload]);
+          if (acce) throw new Error('Accountability Form: ' + acce.message);
         }
       }
 
@@ -355,6 +448,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
             <legend className="font-semibold text-lg">Page 1: Dormitory Application</legend>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <Field label="Semester" field="semester" />
+              <Field label="Admission Year" field="admissionYear" />
               <Field label="Full Name" field="studentName" />
               <div>
                 <label className="block text-sm font-medium mb-1">Sex</label>
@@ -497,7 +591,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
             </div>
           </fieldset>
 
-          {/* Page 3: Designated Guardians (read-only) */}
+          {/* Page 3: Designated Guardians */}
           <fieldset className="border p-4 rounded bg-gray-50">
             <legend className="font-semibold">Designated Guardian(s) in Davao City</legend>
             <div className="space-y-4 mt-4">
@@ -506,10 +600,58 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
                   <div key={g.designatedGuardianID} className="border p-3 rounded">
                     <h4 className="font-medium mb-3">Guardian No. {index + 1}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div><label className="block text-sm font-medium">Full Name</label><div className="p-2 bg-white border rounded">{g.fullName_of_Guardian || 'N/A'}</div></div>
-                      <div><label className="block text-sm font-medium">Relationship</label><div className="p-2 bg-white border rounded">{g.relationshipToResident || 'N/A'}</div></div>
-                      <div className="sm:col-span-2"><label className="block text-sm font-medium">Address</label><div className="p-2 bg-white border rounded">{g.completeAddress || 'N/A'}</div></div>
-                      <div><label className="block text-sm font-medium">Contact</label><div className="p-2 bg-white border rounded">{g.contactNumber || 'N/A'}</div></div>
+                      <div>
+                        <label className="block text-sm font-medium">Full Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={g.fullName_of_Guardian || ''}
+                            onChange={(e) => handleGuardianChange(index, 'fullName_of_Guardian', e.target.value)}
+                            className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="p-2 bg-white border rounded">{g.fullName_of_Guardian || 'N/A'}</div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Relationship</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={g.relationshipToResident || ''}
+                            onChange={(e) => handleGuardianChange(index, 'relationshipToResident', e.target.value)}
+                            className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="p-2 bg-white border rounded">{g.relationshipToResident || 'N/A'}</div>
+                        )}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium">Address</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={g.completeAddress || ''}
+                            onChange={(e) => handleGuardianChange(index, 'completeAddress', e.target.value)}
+                            className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="p-2 bg-white border rounded">{g.completeAddress || 'N/A'}</div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Contact</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={g.contactNumber || ''}
+                            onChange={(e) => handleGuardianChange(index, 'contactNumber', e.target.value)}
+                            className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="p-2 bg-white border rounded">{g.contactNumber || 'N/A'}</div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -519,7 +661,7 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
             </div>
           </fieldset>
 
-          {/* Page 4: Appliance Declaration (read-only) */}
+          {/* Page 4: Appliance Declaration */}
           <fieldset className="border p-4 rounded bg-gray-50">
             <legend className="font-semibold">Appliance Declaration Form</legend>
             <div className="mt-4">
@@ -529,10 +671,43 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
               {studentData.appliances.length > 0 ? (
                 studentData.appliances.map((appliance, index) => (
                   <div key={index} className="grid grid-cols-4 gap-2 mb-2 text-sm">
-                    <div className="p-2 bg-white border rounded">{appliance.list_of_appliances?.applianceName || 'Unknown'}</div>
-                    <div className="p-2 bg-white border rounded">{appliance.quantity || 'N/A'}</div>
-                    <div className="p-2 bg-white border rounded">{appliance.brand || 'N/A'}</div>
-                    <div className="p-2 bg-white border rounded">{appliance.serialNo || 'N/A'}</div>
+                    <div className="p-2 bg-white border rounded text-gray-500">{appliance.list_of_appliances?.applianceName || 'Unknown'}</div>
+                    <div>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={appliance.quantity || 0}
+                          onChange={(e) => handleApplianceChange(index, 'quantity', parseInt(e.target.value, 10) || 0)}
+                          className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                      ) : (
+                        <div className="p-2 bg-white border rounded">{appliance.quantity || '0'}</div>
+                      )}
+                    </div>
+                    <div>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={appliance.brand || ''}
+                          onChange={(e) => handleApplianceChange(index, 'brand', e.target.value)}
+                          className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                      ) : (
+                        <div className="p-2 bg-white border rounded">{appliance.brand || 'N/A'}</div>
+                      )}
+                    </div>
+                    <div>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={appliance.serialNo || ''}
+                          onChange={(e) => handleApplianceChange(index, 'serialNo', e.target.value)}
+                          className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                      ) : (
+                        <div className="p-2 bg-white border rounded">{appliance.serialNo || 'N/A'}</div>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -545,23 +720,61 @@ function StudentFullInfo({ isOpen, onClose, studentNumber }) {
           <fieldset className="border p-4 rounded bg-gray-50">
             <legend className="font-semibold">Acknowledgement of Accountability Form</legend>
             <div className="mt-4">
-              {studentData.accountabilityForm ? (
+              {studentData.accountabilityForm || isEditing ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium">Room Number</label><div className="p-2 bg-white border rounded">{studentData.accountabilityForm.roomNumber || 'Not assigned'}</div></div>
-                    <div><label className="block text-sm font-medium">Semester</label><div className="p-2 bg-white border rounded">{studentData.accountabilityForm.semester || 'Not specified'}</div></div>
+                    <div>
+                      <label className="block text-sm font-medium">Room Number</label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={studentData.accountabilityForm?.roomNumber || ''}
+                          onChange={(e) => handleAccountabilityChange('roomNumber', e.target.value)}
+                          className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                      ) : (
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm?.roomNumber || 'Not assigned'}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Semester</label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={studentData.accountabilityForm?.semester || ''}
+                          onChange={(e) => handleAccountabilityChange('semester', e.target.value)}
+                          className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                      ) : (
+                        <div className="p-2 bg-white border rounded">{studentData.accountabilityForm?.semester || 'Not specified'}</div>
+                      )}
+                    </div>
                   </div>
                   <div className="border-t pt-4">
                     <h4 className="font-medium mb-4">Property Numbers Assigned</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {['roomKey_propertyNumber', 'studyTable_propertyNumber', 'jalousies_propertyNumber', 'window_propertyNumber', 'bedfoam_propertyNumber', 'closet_propertyNumber', 'ClosetDoorHandle_propertyNumber', 'chair_propertyNumber'].map(key => (
-                        <div key={key}><label className="block text-sm font-medium capitalize">{key.replace('_propertyNumber', '').replace(/([A-Z])/g, ' $1').trim()}</label><div className="p-2 bg-white border rounded">{studentData.accountabilityForm[key] || 'Not assigned'}</div></div>
+                        <div key={key}>
+                          <label className="block text-sm font-medium capitalize">{key.replace('_propertyNumber', '').replace(/([A-Z])/g, ' $1').trim()}</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={studentData.accountabilityForm?.[key] || ''}
+                              onChange={(e) => handleAccountabilityChange(key, e.target.value)}
+                              className="p-2 bg-white border rounded w-full border-blue-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                            />
+                          ) : (
+                            <div className="p-2 bg-white border rounded">{studentData.accountabilityForm?.[key] || 'Not assigned'}</div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div className="border-t pt-4 text-sm text-gray-600">
-                    <strong>Form Created:</strong> {new Date(studentData.accountabilityForm.timestamp).toLocaleString()}
-                  </div>
+                  {studentData.accountabilityForm?.timestamp && (
+                    <div className="border-t pt-4 text-sm text-gray-600">
+                      <strong>Form Created:</strong> {new Date(studentData.accountabilityForm.timestamp).toLocaleString()}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">

@@ -65,31 +65,6 @@ const Footer = () => {
                 <li>Office Hours: Monday to Friday, 8:00 AM to 5:00 PM</li>
               </ul>
             </div>
-            
-            {/* Links section - single column on mobile, two columns on tablet+ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
-              {/* Quick links */}
-              <div className="mb-4 sm:mb-0">
-                <h3 className="text-base font-semibold mb-2 border-b border-gray-700 pb-1">QUICK LINKS</h3>
-                <ul className="space-y-1 text-xs sm:text-sm">
-                  <li><a href="#" className="hover:underline">Home</a></li>
-                  <li><a href="#" className="hover:underline">Services</a></li>
-                  <li><a href="#" className="hover:underline">Policies & Guidelines</a></li>
-                  <li><a href="#" className="hover:underline">FAQs</a></li>
-                  <li><a href="#" className="hover:underline">Contact Us</a></li>
-                </ul>
-              </div>
-              
-              {/* Legal policies */}
-              <div>
-                <h3 className="text-base font-semibold mb-2 border-b border-gray-700 pb-1">LEGAL POLICIES</h3>
-                <ul className="space-y-1 text-xs sm:text-sm">
-                  <li><a href="#" className="hover:underline">Privacy Policy</a></li>
-                  <li><a href="#" className="hover:underline">Terms & Conditions</a></li>
-                  <li><a href="#" className="hover:underline">Refund & Cancellation Policy</a></li>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       </div>

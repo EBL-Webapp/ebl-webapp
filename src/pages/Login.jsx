@@ -17,8 +17,18 @@ const LoginPage = () => {
   }, []);
 
   const handleGoogleLogin = async () => {
+    const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    
+    // Update the port right here to 5173
+    const targetRedirect = isLocalhost 
+      ? 'http://localhost:5173/' 
+      : 'https://ebl-webapp.vercel.app/auth/callback';
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: targetRedirect,
+      },
     });
 
     if (error) {
@@ -26,7 +36,6 @@ const LoginPage = () => {
       alert(`Error during Google login: ${error.message}`);
     }
 
-    // Now you can handle the selected role during login if needed
     console.log(`Selected Role: ${selectedRole}`);
   };
 

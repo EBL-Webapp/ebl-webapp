@@ -11,7 +11,7 @@ import supabase from '../supabase_client';
  */
 export async function fetchOffenseTypes() {
     const { data, error } = await supabase
-        .from('list_of_offenses')
+        .from('List_of_Offenses')
         .select('*')
         .order('offenseName', { ascending: true });
 
@@ -25,13 +25,13 @@ export async function fetchOffenseTypes() {
 /**
  * Create a new offense type
  * @param {string} offenseName - Name of the offense
- * @param {number} offenseCharge - Charge amount for the offense
+ * @param {string} offenseSeverity - Severity of the offense (Minor/Major)
  * @returns {Promise<Object>} Created offense
  */
-export async function createOffenseType(offenseName, offenseCharge) {
+export async function createOffenseType(offenseName, offenseSeverity) {
     const { data, error } = await supabase
-        .from('list_of_offenses')
-        .insert([{ offenseName, offenseCharge }])
+        .from('List_of_Offenses')
+        .insert([{ offenseName, offenseSeverity }])
         .select();
 
     if (error) {
@@ -48,10 +48,10 @@ export async function createOffenseType(offenseName, offenseCharge) {
  */
 export async function fetchStudentOffenses(studentNumber) {
     const { data, error } = await supabase
-        .from('student_offenses')
-        .select('*, list_of_offenses(offenseName, offenseCharge)')
+        .from('Offenses_Occured')
+        .select('offenceInstance, studentNumber, offenseID, timestamp, adminName, List_of_Offenses(offenseName, offenseSeverity)')
         .eq('studentNumber', studentNumber)
-        .order('created_at', { ascending: false });
+        .order('timestamp', { ascending: false });
 
     if (error) {
         throw error;
@@ -65,33 +65,60 @@ export async function fetchStudentOffenses(studentNumber) {
  * @param {string} studentNumber - Student number
  * @param {number} offenseID - Offense type ID
  * @param {string} adminID - Admin ID recording the offense
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} Created offense record
  */
 export async function createOffense(studentNumber, offenseID, adminID) {
-    const { error } = await supabase
-        .from('student_offenses')
+    if (!studentNumber || !offenseID) {
+        throw new Error('Missing required fields: studentNumber and offenseID are required');
+    }
+
+    // Fetch admin name from admin table using userID (from auth system)
+    let adminName = 'Unknown Admin';
+    if (adminID) {
+        try {
+            const { data: adminData } = await supabase
+                .from('admin')
+                .select('adminName')
+                .eq('userID', adminID)
+                .single();
+            
+            if (adminData?.adminName) {
+                adminName = adminData.adminName;
+            }
+        } catch (err) {
+            console.warn('Could not fetch admin name for userID:', adminID, err);
+            // Continue with 'Unknown Admin'
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('Offenses_Occured')
         .insert([{
             studentNumber,
             offenseID,
-            recordedBy: adminID,
-        }]);
+            adminName,
+        }])
+        .select();
 
     if (error) {
-        throw error;
+        console.error('Supabase error inserting offense:', error);
+        throw new Error(error.message || 'Failed to create offense record');
     }
+
+    return data;
 }
 
 /**
  * Update an offense record
- * @param {number} offenseRecordID - Offense record ID
+ * @param {string} offenseRecordID - Offense record ID (offenceInstance UUID)
  * @param {Object} data - Data to update
  * @returns {Promise<void>}
  */
 export async function updateOffense(offenseRecordID, data) {
     const { error } = await supabase
-        .from('student_offenses')
+        .from('Offenses_Occured')
         .update(data)
-        .eq('id', offenseRecordID);
+        .eq('offenceInstance', offenseRecordID);
 
     if (error) {
         throw error;
@@ -100,14 +127,14 @@ export async function updateOffense(offenseRecordID, data) {
 
 /**
  * Delete an offense record
- * @param {number} offenseRecordID - Offense record ID
+ * @param {string} offenseRecordID - Offense record ID (offenceInstance UUID)
  * @returns {Promise<void>}
  */
 export async function deleteOffense(offenseRecordID) {
     const { error } = await supabase
-        .from('student_offenses')
+        .from('Offenses_Occured')
         .delete()
-        .eq('id', offenseRecordID);
+        .eq('offenceInstance', offenseRecordID);
 
     if (error) {
         throw error;

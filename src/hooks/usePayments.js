@@ -161,3 +161,29 @@ export function useTriggerMonthlyCharges() {
         },
     });
 }
+
+/**
+ * Hook to fetch payment history for a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Object} Query object with payment history
+ */
+export function useStudentPaymentHistory(studentNumber) {
+    return useQuery({
+        queryKey: ['payment-history', studentNumber],
+        queryFn: () => paymentsService.fetchStudentPaymentHistory(studentNumber),
+        enabled: !!studentNumber,
+    });
+}
+
+/**
+ * Hook to fetch charge history for a specific student
+ * @param {string} studentNumber - Student number
+ * @returns {Object} Query object with charge history
+ */
+export function useStudentChargeHistory(studentNumber) {
+    return useQuery({
+        queryKey: ['charge-history', studentNumber],
+        queryFn: () => paymentsService.fetchStudentChargeHistory(studentNumber),
+        enabled: !!studentNumber,
+    });
+}
