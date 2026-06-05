@@ -22,7 +22,7 @@ const LoginPage = () => {
     // Update the port right here to 5173
     const targetRedirect = isLocalhost 
       ? 'http://localhost:5173/' 
-      : 'https://ebl-webapp.vercel.app/auth/callback';
+      : 'https://ebl-webapp.vercel.app/';
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
