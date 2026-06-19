@@ -32,6 +32,7 @@ import AdminPage_studentsList from "./pages/Admin/subPages/AdminPage_studentsLis
 import NoUpdate from "./pages/SignUp/NoUpdate";
 import PickRole from "./pages/SignUp/PickRole";
 import StudentSignIn from "./pages/SignUp/StudentSignIn";
+import RejectedPage from "./pages/SignUp/RejectedPage";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -68,6 +69,7 @@ function App() {
         <Route path="NoUpdate" element={<NoUpdate />} />
         <Route path="PickRole" element={<PickRole/>} />
         <Route path="StudentSignIn" element={<StudentSignIn/>}/>
+        <Route path="Rejected" element={<RejectedPage/>}/>
 
         {/* Catch-all route for unknown pages */}
         <Route

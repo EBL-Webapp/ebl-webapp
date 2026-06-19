@@ -93,6 +93,53 @@ export async function archiveStudent(studentNumber) {
 }
 
 /**
+ * Reject a student's application
+ * Sets isRejected=true so the FSM routes them to /Rejected
+ * @param {string} studentNumber - Student number to reject
+ * @returns {Promise<void>}
+ */
+export async function rejectStudent(studentNumber) {
+    const { error } = await supabase
+        .from('Students')
+        .update({ isRejected: true })
+        .eq('studentNumber', studentNumber);
+
+    if (error) {
+        throw error;
+    }
+}
+
+/**
+ * Upsert (insert-or-update) the Students row for a re-applying student.
+ * Used by StudentSignIn.jsx so that a rejected student can resubmit
+ * without hitting a duplicate-key error.
+ *
+ * @param {Object} studentData - { userID, studentNumber, studentName, email }
+ * @returns {Promise<void>}
+ */
+export async function upsertStudentRow({ userID, studentNumber, studentName, email }) {
+    const { error } = await supabase
+        .from('Students')
+        .upsert(
+            {
+                userID,
+                studentNumber,
+                studentName,
+                email,
+                isAssessed: false,
+                isArchived: false,
+                isRejected: false,
+                surplus_deficit_payment: 0,
+            },
+            { onConflict: 'studentNumber' } // update the existing row if the PK already exists
+        );
+
+    if (error) {
+        throw error;
+    }
+}
+
+/**
  * Unarchive a student
  * @param {string} studentNumber - Student number to unarchive
  * @returns {Promise<void>}

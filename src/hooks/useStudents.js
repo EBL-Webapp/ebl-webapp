@@ -88,6 +88,21 @@ export function useArchiveStudent() {
 }
 
 /**
+ * Hook to reject a student's application
+ * @returns {Object} Mutation object
+ */
+export function useRejectStudent() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (studentNumber) => studentsService.rejectStudent(studentNumber),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['students', 'list'] });
+        },
+    });
+}
+
+/**
  * Hook to unarchive a student
  * @returns {Object} Mutation object
  */

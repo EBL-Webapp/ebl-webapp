@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import StudentFullInfo from '../../../components/StudentFullInfo';
 import PaginationControls from '../../../components/PaginationControls';
-import { useStudentsList, useArchiveStudent } from '../../../hooks/useStudents';
+import { useStudentsList, useArchiveStudent, useRejectStudent } from '../../../hooks/useStudents';
 
  
 const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
@@ -42,6 +42,10 @@ export default function AdminPage_studentsList() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [studentToArchive, setStudentToArchive] = useState(null);
 
+  // Reject states
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [studentToReject, setStudentToReject] = useState(null);
+
   // Pagination states (1-indexed)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -53,8 +57,13 @@ export default function AdminPage_studentsList() {
     activeSearchTerm
   );
 
+  console.log("studentsData is: ", studentsData)
+
   // Archive mutation
   const archiveStudentMutation = useArchiveStudent();
+
+  // Reject mutation
+  const rejectStudentMutation = useRejectStudent();
 
   // Handler for name search form submission
   const searchByName = (e) => {
@@ -100,6 +109,32 @@ export default function AdminPage_studentsList() {
     setStudentToArchive(null);
   };
 
+  // Handler to initiate student rejection
+  const handleRejectStudent = (studentNumber) => {
+    setStudentToReject(studentNumber);
+    setIsRejectModalOpen(true);
+  };
+
+  // Handler for confirming student rejection
+  const confirmReject = async () => {
+    setIsRejectModalOpen(false);
+    if (!studentToReject) return;
+    try {
+      await rejectStudentMutation.mutateAsync(studentToReject);
+    } catch (error) {
+      console.error('Error rejecting student:', error);
+      alert('Error rejecting student: ' + error.message);
+    } finally {
+      setStudentToReject(null);
+    }
+  };
+
+  // Handler for canceling student rejection
+  const cancelReject = () => {
+    setIsRejectModalOpen(false);
+    setStudentToReject(null);
+  };
+
   // Handler for viewing student full info
   const handleViewStudent = (studentNumber) => {
     setSelectedStudentNumber(studentNumber);
@@ -121,7 +156,7 @@ export default function AdminPage_studentsList() {
 
   const displayStudents = studentsData?.data || [];
   const totalFilteredRows = studentsData?.count || 0;
-  const combinedLoading = isLoading || archiveStudentMutation.isPending;
+  const combinedLoading = isLoading || archiveStudentMutation.isPending || rejectStudentMutation.isPending;
 
   return (
     <div className='bg-white min-h-screen p-6'>
@@ -235,10 +270,19 @@ export default function AdminPage_studentsList() {
                             </button>
                             <button
                               onClick={() => handleArchiveStudent(student.studentNumber)}
-                              className='bg-[#4E0303] hover:bg-[#4E0303] text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              className='bg-gray-500 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                             >
                               Archive
                             </button>
+                            {/* Only allow rejection for pending students */}
+                            {!student.isAssessed && (
+                              <button
+                                onClick={() => handleRejectStudent(student.studentNumber)}
+                                className='bg-[#4E0303] hover:bg-red-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              >
+                                Reject
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -270,6 +314,14 @@ export default function AdminPage_studentsList() {
           message="Are you sure you want to archive this student?"
           onConfirm={confirmArchive}
           onCancel={cancelArchive}
+        />
+
+        {/* Custom Confirmation Modal for Rejection */}
+        <ConfirmationModal
+          isOpen={isRejectModalOpen}
+          message="Reject this student's application? They will be notified and can reapply."
+          onConfirm={confirmReject}
+          onCancel={cancelReject}
         />
       </div>
     </div>

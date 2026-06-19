@@ -5,7 +5,8 @@ import {
   usePendingValidationPermits,
   useApprovePermit,
   useDenyPermit,
-  useValidatePermit
+  useValidatePermit,
+  useInvalidatePermit
 } from '../../../hooks/useOverstayPermits';
 import PermitApprovalModal from '../Components/PermitApprovalModal';
 
@@ -22,11 +23,13 @@ export default function AdminPage_overstayPermits() {
   const approvePermitMutation = useApprovePermit();
   const denyPermitMutation = useDenyPermit();
   const validatePermitMutation = useValidatePermit();
+  const invalidatePermitMutation = useInvalidatePermit();
 
   const isLoading = isLoadingApproval || isLoadingValidation ||
     approvePermitMutation.isPending ||
     denyPermitMutation.isPending ||
-    validatePermitMutation.isPending;
+    validatePermitMutation.isPending ||
+    invalidatePermitMutation.isPending;
 
   const handleApprove = async (requestId) => {
     try {
@@ -55,6 +58,19 @@ export default function AdminPage_overstayPermits() {
     } catch (error) {
       console.error('Error validating permit:', error);
       alert('Error validating permit: ' + error.message);
+    }
+  };
+
+  const handleInvalidate = async (requestId, studentNumber) => {
+    if (!confirm("Are you sure you want to invalidate this permit? This will record a Locator Slip offense for the student.")) {
+      return;
+    }
+    try {
+      await invalidatePermitMutation.mutateAsync({ requestId, studentNumber, adminID });
+      console.log(`Permit ${requestId} invalidated successfully and offense recorded.`);
+    } catch (error) {
+      console.error('Error invalidating permit:', error);
+      alert('Error invalidating permit: ' + error.message);
     }
   };
 
@@ -224,6 +240,12 @@ export default function AdminPage_overstayPermits() {
                                 className='bg-[#114516] hover:bg-green-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
                               >
                                 Validate
+                              </button>
+                              <button
+                                onClick={() => handleInvalidate(permit.overnightExcuseID, permit.studentNumber)}
+                                className='bg-[#4E0303] hover:bg-red-800 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200'
+                              >
+                                Invalidate
                               </button>
                             </div>
                           </td>

@@ -146,3 +146,59 @@ export async function fetchStudentOvernightSlips(studentNumber) {
 
     return data;
 }
+
+/**
+ * Invalidate a permit and record a Locator Slip offense (offenseID=2)
+ * @param {number} requestId - Overnight excuse ID
+ * @param {string} studentNumber - Student number
+ * @param {string} adminID - Admin ID invalidating
+ * @returns {Promise<void>}
+ */
+export async function invalidatePermit(requestId, studentNumber, adminID) {
+    // 1. Update Overnight_Excuse row
+    const { error: excuseError } = await supabase
+        .from('Overnight_Excuse')
+        .update({
+            isValidated: false,
+            validatedby_adminID: adminID,
+            validatedOn: new Date().toISOString(),
+        })
+        .eq('overnightExcuseID', requestId);
+
+    if (excuseError) {
+        throw excuseError;
+    }
+
+    // 2. Fetch admin name from admin table using adminID
+    let adminName = 'Unknown Admin';
+    if (adminID) {
+        try {
+            const { data: adminData } = await supabase
+                .from('admin')
+                .select('adminName')
+                .eq('adminID', adminID)
+                .single();
+            
+            if (adminData?.adminName) {
+                adminName = adminData.adminName;
+            }
+        } catch (err) {
+            console.warn('Could not fetch admin name for adminID:', adminID, err);
+        }
+    }
+
+    // 3. Insert into Offenses_Occured (offenseID = 2)
+    const { error: offenseError } = await supabase
+        .from('Offenses_Occured')
+        .insert([{
+            studentNumber,
+            offenseID: 2,
+            adminName,
+        }]);
+
+    if (offenseError) {
+        console.error('Error inserting offense for invalidated permit:', offenseError);
+        throw offenseError;
+    }
+}
+
