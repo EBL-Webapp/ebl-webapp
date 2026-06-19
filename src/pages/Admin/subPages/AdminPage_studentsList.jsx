@@ -57,8 +57,6 @@ export default function AdminPage_studentsList() {
     activeSearchTerm
   );
 
-  console.log("studentsData is: ", studentsData)
-
   // Archive mutation
   const archiveStudentMutation = useArchiveStudent();
 

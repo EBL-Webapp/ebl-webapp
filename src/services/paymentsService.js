@@ -18,15 +18,16 @@ export async function fetchStudentsWithPayments(page, limit, searchTerm = '') {
 
     let query = supabase
         .from('Students')
-        .select('studentNumber, studentName, surplus_deficit_payment, isArchived', {
+        .select('studentNumber, studentName, surplus_deficit_payment, isArchived, isAssessed', {
             count: 'exact',
         })
         .eq('isArchived', false)
         .eq('isAssessed', true);
 
     if (searchTerm) {
+        // Change the % wildcards to * wildcards for PostgREST compliance
         query = query.or(
-            `studentName.ilike.%${searchTerm}%,studentNumber.ilike.%${searchTerm}%`
+            `studentName.ilike.*${searchTerm}*,studentNumber.ilike.*${searchTerm}*`
         );
     }
 
@@ -36,12 +37,12 @@ export async function fetchStudentsWithPayments(page, limit, searchTerm = '') {
         throw error;
     }
 
-    // Sort by payment status (lowest balance first)
-    const sorted = data.sort(
+    // Safely fallback to an empty array if data is null to avoid crash loops
+    const sorted = (data || []).sort(
         (a, b) => (a.surplus_deficit_payment || 0) - (b.surplus_deficit_payment || 0)
     );
 
-    return { data: sorted, count };
+    return { data: sorted, count: count || 0 };
 }
 
 /**
