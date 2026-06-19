@@ -18,7 +18,7 @@ export async function fetchStudentsPaginated(page, limit, searchTerm = '') {
 
     let query = supabase
         .from('Students')
-        .select('studentNumber, studentName, surplus_deficit_payment, isArchived', {
+        .select('studentNumber, studentName, surplus_deficit_payment, isArchived, isAssessed', {
             count: 'exact',
         })
         .eq('isArchived', false);

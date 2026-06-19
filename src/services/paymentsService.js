@@ -21,7 +21,8 @@ export async function fetchStudentsWithPayments(page, limit, searchTerm = '') {
         .select('studentNumber, studentName, surplus_deficit_payment, isArchived', {
             count: 'exact',
         })
-        .eq('isArchived', false);
+        .eq('isArchived', false)
+        .eq('isAssessed', true);
 
     if (searchTerm) {
         query = query.or(
