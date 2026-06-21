@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../../supabase_client';
+import { upsertStudentRow } from '../../services/studentsService';
 
 function StudentSignIn() {
   const navigate = useNavigate();
@@ -87,18 +88,17 @@ function StudentSignIn() {
     }
 
     try {
-        // Insert into Students table
-        const { error: insertionError } = await supabase
-            .from('Students')
-            .insert([{
-                'userID': currentSession.user.id,
-                'studentNumber': formData.studentId,
-                'studentName': formData.name,
-                'email': formData.email,
-            }]);
-
-        if (insertionError) {
-            console.error("Error inserting into Students table: ", insertionError.message);
+        // Upsert into Students table (handles both first-time applicants AND rejected students reapplying)
+        try {
+            await upsertStudentRow({
+                userID: currentSession.user.id,
+                studentNumber: formData.studentId,
+                studentName: formData.name,
+                email: formData.email,
+            });
+        } catch (upsertError) {
+            console.error('Error upserting Students row:', upsertError.message);
+            alert('There was an error saving your student record. Please try again.');
             return;
         }
 

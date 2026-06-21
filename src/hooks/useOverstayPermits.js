@@ -108,3 +108,20 @@ export function useCreateOvernightSlip() {
         },
     });
 }
+
+/**
+ * Hook to invalidate a permit and record a Locator Slip offense
+ * @returns {Object} Mutation object
+ */
+export function useInvalidatePermit() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ requestId, studentNumber, adminID }) =>
+            overstayPermitsService.invalidatePermit(requestId, studentNumber, adminID),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['permits', 'pendingValidation'] });
+        },
+    });
+}
+

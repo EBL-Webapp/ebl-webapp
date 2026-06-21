@@ -155,7 +155,8 @@ export async function searchStudentsForOffenses(searchTerm, page, limit) {
     let query = supabase
         .from('Students')
         .select('studentNumber, studentName, isArchived', { count: 'exact' })
-        .eq('isArchived', false);
+        .eq('isArchived', false)
+        .eq('isAssessed', true);
 
     if (searchTerm) {
         query = query.or(

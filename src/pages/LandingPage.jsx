@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import eblBg from '/ebl_bg.png';
-import supabase from '../supabase_client';
-import { fetchColumnValue } from '../fetchColumnValue';
+import { resolveUserState, FSM_STATE } from '../roleFSM';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -12,142 +11,62 @@ const LandingPage = () => {
   useEffect(() => {
 
     const checkUserSessionAndRole = async () => {
+      const { state, studentNumber, adminID } = await resolveUserState();
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('User is logged in:', session.user);
-      }
-      else {
-        console.log('No user session found...');
-        return;
-      }
+      console.log('[LandingPage] FSM state:', state);
 
-      console.log("The user is: ", session.user.id);
-
-      // In this part we have to know if the user has an existing role or not
-      // Let's check if the user exists as a student
-      const studentNumber = await fetchColumnValue(
-        "Students",
-        "userID",
-        session.user.id,
-        "studentNumber",
-      );
-      console.log("student number is: ", studentNumber);
-      if (studentNumber){
-        // We need to check if this user is even accepted or not
-
-        const {data : isAccepted, error : isAccepted_error} = await supabase
-          .from('Students')
-          .select('isAssessed')
-          .eq("studentNumber", studentNumber)
-          .limit(1);
-        if(isAccepted_error){
-          console.log("There's an error in retrieving if accepted student or not:", isAccepted_error.message);
-        }
-        if(isAccepted[0].isAssessed === true){
-          localStorage.setItem("studentNumber", studentNumber)
-          navigate('/Student/StudentPage');
+      switch (state) {
+        case FSM_STATE.NO_SESSION:
+          // User is not logged in — stay on landing page
           return;
-        } else {
-          navigate('/NoUpdate')
+
+        case FSM_STATE.NO_ROLE:
+          // Logged in but hasn't picked a role yet
+          navigate('/PickRole');
           return;
-        }
+
+        case FSM_STATE.STUDENT_PENDING:
+          // Application submitted, waiting for admin review
+          navigate('/NoUpdate');
+          return;
+
+        case FSM_STATE.STUDENT_REJECTED:
+          // Application was explicitly denied
+          navigate('/Rejected');
+          return;
+
+        case FSM_STATE.STUDENT_ARCHIVED:
+          // Account was archived (dismissed/left)
+          navigate('/NoUpdate');
+          return;
+
+        case FSM_STATE.STUDENT_ACCEPTED:
+          // Active, confirmed student
+          localStorage.setItem('studentNumber', studentNumber);
+          navigate('/student');
+          return;
+
+        case FSM_STATE.ADMIN_PENDING:
+          // Admin request is awaiting approval
+          navigate('/NoUpdate');
+          return;
+
+        case FSM_STATE.ADMIN_ACCEPTED:
+          // Active, confirmed admin
+          localStorage.setItem('adminID', adminID);
+          navigate('/admin');
+          return;
+
+        default:
+          console.warn('[LandingPage] Unknown FSM state:', state);
+          navigate('/PickRole');
       }
-
-
-
-      // Check admin
-      const { data: adminRecord, error: adminErr } = await supabase
-        .from("admin_accepted_users")
-        .select("adminID")
-        .eq("userID", session.user.id)
-        .maybeSingle();
-
-      // If no admin record, skip this block
-      if (adminErr) {
-        console.log("Admin lookup error:", adminErr.message);
-      }
-
-      if (adminRecord) {
-        const adminID = adminRecord.adminID;
-        console.log("Admin ID:", adminID);
-
-        // Now check if this admin is accepted
-        const { data: acceptedAdmin, error: acceptedErr } = await supabase
-          .from("admin")
-          .select("isAccepted")
-          .eq("adminID", adminID)
-          .maybeSingle();
-
-        if (acceptedErr) {
-          console.log("Error checking admin acceptance:", acceptedErr.message);
-          return;
-        }
-
-        console.log("Admin acceptance record:", acceptedAdmin);
-
-        if (acceptedAdmin && acceptedAdmin.isAccepted === true) {
-          localStorage.setItem("adminID", adminID);
-          navigate("/admin");
-          return;
-        } else {
-          navigate("/NoUpdate");
-          return;
-        }
-      }
-
-
-
-
-      // // Let's check if the user is a transient
-      // const transientID = await fetchColumnValue(
-      //   "Transient",
-      //   "userID",
-      //   session.user.id,
-      //   "transientID",
-      // )
-      // if(transientID){
-      //   localStorage.setItem("transientID", transientID)
-      //   navigate("/transient");
-      //   return;
-      // }
-      // console.log("transientID found:", transientID);
-
-      // try {
-      //   
-      //   // Let's check if the user is a signing-in transient
-      //   const transient_str = localStorage.getItem('Transient_Sign_Up')
-      //   if(transient_str === 'transient-sign-in'){
-      //     console.log("Pumasok ba?")
-      //     // Then that means we should allow the user to sign-in as a transient
-      //     const {error} = await supabase.from('Transient').insert([{
-      //       userID : session.user.id
-      //     }])
-
-      //     localStorage.removeItem('Transient_Sign_Up')
-
-      //     if(error && error.message){
-      //       console.log("Error in writing the new transient in landing page: ", error.message)
-      //       return
-      //     }
-      //     navigate('/navigate')
-      //     return;
-      //   }
-
-      // } catch (err) {
-      //   console.log("The algorithm has checked that there is no request for this user to be transient: ", err.message)
-      // }
-
-
-
-      // If the user has a session and is still in the page that means the user has not picked a role.
-      navigate("/PickRole")
-
     };
 
     checkUserSessionAndRole();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -209,9 +128,9 @@ const LandingPage = () => {
             </div>
 
             {/* Call to Action Button */}
-            <button onClick={() => navigate('/transient')} className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
+            {/* <button onClick={() => navigate('/transient')} className="bg-black hover:bg-gray-900 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition duration-300 text-lg sm:text-lg shadow-md">
               Just Visiting? Check the Transient Rates!
-            </button>
+            </button> */}
           </section>
         </div>
       </main>
